@@ -62,7 +62,7 @@ protected:
   int bytespp;
 
   bool load_rle_data(std::ifstream &in);
-  bool unload_rle_data(std::ofstream &out);
+  bool unload_rle_data(std::ofstream &out) const;
 
 public:
   enum Format { GRAYSCALE = 1, RGB = 3, RGBA = 4 };
@@ -72,7 +72,7 @@ public:
   TGAImage(const TGAImage &img);
 
   bool read_tga_file(const char *filename);
-  bool write_tga_file(const char *filename, bool rle = true);
+  bool write_tga_file(const char *filename, bool rle = true) const;
 
   bool flip_horizontally();
   bool flip_vertically();

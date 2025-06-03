@@ -146,7 +146,7 @@ bool TGAImage::load_rle_data(std::ifstream &in) {
   return true;
 }
 
-bool TGAImage::write_tga_file(const char *filename, bool rle) {
+bool TGAImage::write_tga_file(const char *filename, bool rle) const {
   unsigned char developer_area_ref[4] = {0, 0, 0, 0};
   unsigned char extension_area_ref[4] = {0, 0, 0, 0};
   unsigned char footer[18] = {'T', 'R', 'U', 'E', 'V', 'I', 'S', 'I', 'O',
@@ -210,7 +210,7 @@ bool TGAImage::write_tga_file(const char *filename, bool rle) {
 
 // TODO: it is not necessary to break a raw chunk for two equal pixels (for the
 // matter of the resulting size)
-bool TGAImage::unload_rle_data(std::ofstream &out) {
+bool TGAImage::unload_rle_data(std::ofstream &out) const {
   const unsigned char max_chunk_length = 128;
   unsigned long npixels = width * height;
   unsigned long curpix = 0;

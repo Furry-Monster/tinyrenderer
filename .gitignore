@@ -10,3 +10,7 @@
 *.out                   
 
 tinyrenderer
+main
+
+# exclude output files
+*.tga

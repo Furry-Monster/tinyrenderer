@@ -5,7 +5,7 @@
 
 void save_image(const TGAImage &image);
 
-// too slow !
+// too slow!
 void draw_line1(int x0, int y0, int x1, int y1, TGAImage &image,
                 TGAColor color) {
   for (float t = 0.0f; t < 1.; t += 0.001f) {
@@ -56,11 +56,12 @@ int main(int argc, char **argv) {
   TGAColor green(0, 255, 0, 255);
   TGAColor blue(0, 0, 255, 255);
 
-  draw_line1(100, 100, 500, 700, image, red);
-  draw_line2(200, 200, 600, 300, image, blue);
-  draw_line3(0, 100, 100, 600, image, green);
-  draw_line3(500, 100, 100, 500, image, red);
-
+  for (int i = 0; i < 10000; i++) {
+    draw_line1(100, 100, 500, 700, image, red);
+    draw_line2(200, 200, 600, 300, image, blue);
+    draw_line3(0, 100, 100, 600, image, green);
+    draw_line3(500, 100, 100, 500, image, red);
+  }
   image.flip_vertically();
 
   save_image(image);

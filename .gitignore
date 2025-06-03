@@ -11,6 +11,8 @@
 
 tinyrenderer
 main
+main_debug
 
 # exclude output files
 *.tga
+*.txt

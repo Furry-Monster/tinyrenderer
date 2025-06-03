@@ -50,17 +50,83 @@ void draw_line3(int x0, int y0, int x1, int y1, TGAImage &image,
   }
 }
 
+// optimized
+void draw_line4(int x0, int y0, int x1, int y1, TGAImage &image,
+                TGAColor color) {
+  bool steep = false;
+  if (std::abs(x0 - x1) <
+      std::abs(y0 - y1)) { // if the line is steep, we transpose the image
+    std::swap(x0, y0);
+    std::swap(x1, y1);
+    steep = true;
+  }
+  if (x0 > x1) { // make it left−to−right
+    std::swap(x0, x1);
+    std::swap(y0, y1);
+  }
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  float derror = std::abs(dy / float(dx));
+  float error = 0;
+  int y = y0;
+  for (int x = x0; x <= x1; x++) {
+    if (steep) {
+      image.set(y, x, color); // if transposed, de−transpose
+    } else {
+      image.set(x, y, color);
+    }
+    error += derror;
+    if (error > .5) {
+      y += (y1 > y0 ? 1 : -1);
+      error -= 1.;
+    }
+  }
+}
+
+// optimized optimized !
+void draw_line5(int x0, int y0, int x1, int y1, TGAImage &image,
+                TGAColor color) {
+  bool steep = false;
+  if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
+    std::swap(x0, y0);
+    std::swap(x1, y1);
+    steep = true;
+  }
+  if (x0 > x1) {
+    std::swap(x0, x1);
+    std::swap(y0, y1);
+  }
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  int derror2 = std::abs(dy) * 2;
+  int error2 = 0;
+  int y = y0;
+  for (int x = x0; x <= x1; x++) {
+    if (steep) {
+      image.set(y, x, color);
+    } else {
+      image.set(x, y, color);
+    }
+    error2 += derror2;
+    if (error2 > dx) {
+      y += (y1 > y0 ? 1 : -1);
+      error2 -= dx * 2;
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   TGAImage image(800, 800, TGAImage::RGB);
   TGAColor red(255, 0, 0, 255);
   TGAColor green(0, 255, 0, 255);
   TGAColor blue(0, 0, 255, 255);
 
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 100000; i++) {
     draw_line1(100, 100, 500, 700, image, red);
     draw_line2(200, 200, 600, 300, image, blue);
     draw_line3(0, 100, 100, 600, image, green);
-    draw_line3(500, 100, 100, 500, image, red);
+    draw_line4(500, 100, 100, 500, image, red);
+    draw_line5(500, 100, 100, 800, image, green);
   }
   image.flip_vertically();
 

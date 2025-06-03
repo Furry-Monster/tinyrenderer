@@ -1,0 +1,12 @@
+# exclude dotfiles
+.vscode/
+.idea/
+.vs/
+
+# exclude target & builded
+*.o                     
+*.s                     
+*.i                     
+*.out                   
+
+tinyrenderer

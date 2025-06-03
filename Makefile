@@ -1,39 +1,22 @@
-CC := gcc                                  
-CFLAGS := -Wall -Wextra -pedantic -std=c99 
-DEBUGFLAGS := -g                           
-TARGET := tinyrenderer                         
-SRC := tinyrenderer.c                          
-OBJ := $(SRC:.c=.o)                        
+SYSCONF_LINK = g++
+CPPFLAGS     =
+LDFLAGS      =
+LIBS         = -lm
 
-# Default target                                      
-.PHONY: all                                           
-all: $(TARGET)                                        
+DESTDIR = ./
+TARGET  = main
 
-# Build the executable                                
-$(TARGET): $(OBJ)                                     
-	$(CC) $(OBJ) -o $(TARGET)                           
+OBJECTS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-# Compile source files to object files                
-%.o: %.c                                              
-	$(CC) $(CFLAGS) -c $< -o $@                         
+all: $(DESTDIR)$(TARGET)
 
-# Debug build                                         
-.PHONY: debug                                         
-debug: CFLAGS += $(DEBUGFLAGS)                        
-debug: clean all                                      
+$(DESTDIR)$(TARGET): $(OBJECTS)
+	$(SYSCONF_LINK) -Wall $(LDFLAGS) -o $(DESTDIR)$(TARGET) $(OBJECTS) $(LIBS)
 
-# Clean the build                                     
-.PHONY: clean                                         
-clean:                                                
-	rm -f $(TARGET) $(OBJ)                              
+$(OBJECTS): %.o: %.cpp
+	$(SYSCONF_LINK) -Wall $(CPPFLAGS) -c $(CFLAGS) $< -o $@
 
-# Help target                                         
-.PHONY: help                                          
-help:                                                 
-	@echo "Available targets:"                          
-	@echo "  all      : Build the executable (default)" 
-	@echo "  debug    : Build with debug information"   
-	@echo "  clean    : Remove build artifacts"         
-	@echo "  install  : Install to /usr/local/bin"      
-	@echo "  uninstall: Remove from /usr/local/bin"     
-	@echo "  help     : Show this help message"         
+clean:
+	-rm -f $(OBJECTS)
+	-rm -f $(TARGET)
+	-rm -f *.tga

@@ -1,6 +1,9 @@
 #include "gmath.h"
 #include "tgaimage.h"
+#include <algorithm>
+#include <cstdio>
 #include <iostream>
+#include <utility>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
@@ -48,11 +51,57 @@ void draw_triangle1(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
   draw_line(v2, v0, image, color);
 }
 
-// this method draw a solid triangle
 void draw_triangle2(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
                     TGAColor color) {
-  // to keep it simple, the triangle won't use interpolate color
+  if (v0.y > v1.y)
+    std::swap(v0, v1);
+  if (v0.y > v2.y)
+    std::swap(v0, v2);
+  if (v1.y > v2.y)
+    std::swap(v1, v2);
 
+  Vec2i dir0 = v0 - v2;
+  Vec2i dir1 = v1 - v2;
+  for (float i = 0; i < 1.0f; i += 0.001f) {
+    Vec2i v_left = v2 + dir0 * i;
+    Vec2i v_right = v2 + dir1 * i;
+    draw_line(v_left, v_right, image, color);
+  }
+}
+
+// this method draw a solid triangle
+void draw_triangle3(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
+                    TGAColor color) {
+  // To keep it simple, the triangle won't use interpolate color:
+  // 1. Sort vertices of the triangle by their y-coordinates;
+  // 2. Rasterize simultaneously the left and the right sides of the triangle;
+  // 3. Draw a horizontal line segment between the left and the right boundary
+  // points.
+  // sort the vertices, t0, t1, t2 lower−to−upper (bubblesort yay!)
+  if (v0.y > v1.y)
+    std::swap(v0, v1);
+  if (v0.y > v2.y)
+    std::swap(v0, v2);
+  if (v1.y > v2.y)
+    std::swap(v1, v2);
+  int total_height = v2.y - v0.y;
+
+  for (int i = 0; i < total_height; i++) {
+    bool second_half = i > v1.y - v0.y || v1.y == v0.y;
+    int segment_height = second_half ? v2.y - v1.y : v1.y - v0.y;
+    float alpha = (float)i / total_height;
+    float beta = (float)(i - (second_half ? v1.y - v0.y : 0)) /
+                 segment_height; // be careful: with above conditions no
+                                 // division by zero here
+    Vec2i A = v0 + (v2 - v0) * alpha;
+    Vec2i B = second_half ? v1 + (v2 - v1) * beta : v0 + (v1 - v0) * beta;
+    if (A.x > B.x)
+      std::swap(A, B);
+    for (int j = A.x; j <= B.x; j++) {
+      image.set(j, v0.y + i,
+                color); // attention, due to int casts v0.y+i != A.y
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -62,9 +111,12 @@ int main(int argc, char **argv) {
   Vec2i t1[3] = {Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180)};
   Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)};
 
-  draw_triangle1(t0[0], t0[1], t0[2], image, red);
-  draw_triangle1(t1[0], t1[1], t1[2], image, white);
-  draw_triangle1(t2[0], t2[1], t2[2], image, green);
+  for (int i = 0; i < 10000; i++) {
+    draw_triangle1(t0[0], t0[1], t0[2], image, red);
+    draw_triangle2(t1[0], t1[1], t1[2], image, white);
+    draw_triangle3(t2[0], t2[1], t2[2], image, green);
+    std::cout << "Work on no." << i << " rendering...\n";
+  }
 
   image.flip_vertically();
   save_image(image);

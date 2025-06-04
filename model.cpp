@@ -25,8 +25,9 @@ Model::Model(const char *filename) : verts_(), faces_() {
     } else if (!line.compare(0, 2, "f ")) {
       std::vector<int> f;
       int itrash, idx;
-      iss >> trash;
+      iss >> trash; // skip "f "
       while (iss >> idx >> trash >> itrash >> trash >> itrash) {
+        // read in format of "f xxx/xxx/xxx xxx/xxx/xxx xxx/xxx/xxx"
         idx--; // idx start from 1 , but c++ array start from 0
         f.push_back(idx);
       }
@@ -36,7 +37,13 @@ Model::Model(const char *filename) : verts_(), faces_() {
   std::cerr << "# verts sum as: " << verts_.size() << "\n"
             << "# faces sum as: " << faces_.size() << std::endl;
 }
-Model::~Model() {}
+Model::~Model() {
+  verts_.clear();
+  faces_.clear();
+#ifdef DEBUG
+  std::cerr << "Model destroyed" << std::endl;
+#endif
+}
 
 int Model::nverts() { return (int)verts_.size(); }
 int Model::nfaces() { return (int)faces_.size(); }

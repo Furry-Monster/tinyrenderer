@@ -7,12 +7,14 @@
 *.o                     
 *.s                     
 *.i                     
-*.out                   
 
-tinyrenderer
-main
-main_debug
+tinyrenderer*
+
+# exclude benchmark files
+*.out                   
+analysis*.txt
+
+*_bench
 
 # exclude output files
 *.tga
-*.txt

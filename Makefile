@@ -16,15 +16,19 @@ DESTDIR = ./
 TARGET  = tinyrenderer
 TARGET_DEBUG = $(TARGET)_debug
 LINEBENCH_TARGET = line_bench
+TRIANGLEBENCH_TARGET = triangle_bench
+ALL_TARGET = $(TARGET) $(TARGET_DEBUG) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET)
 
 # 源文件
 MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
-LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp model.cpp
+LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
+TRIANGLEBENCH_SRCS = trianglebench_main.cpp tgaimage.cpp
 
 # object文件,等待链接
 MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
 LINEBENCH_OBJS = $(LINEBENCH_SRCS:.cpp=.o)
-OBJECTS = $(MAIN_OBJS) $(LINEBENCH_OBJS)
+TRIANGLEBENCH_OBJS = $(TRIANGLEBENCH_SRCS:.cpp=.o)
+OBJECTS = $(MAIN_OBJS) $(LINEBENCH_OBJS) $(TRIANGLEBENCH_OBJS)
 
 .PHONY: all clean debug release bench help
 
@@ -45,8 +49,13 @@ linebench: CPPFLAGS += $(DEBUG_FLAGS)
 linebench: LDFLAGS += $(DEBUG_FLAGS_LD)
 linebench: $(DESTDIR)$(LINEBENCH_TARGET)
 
+# 三角形绘制基准测试
+trianglebench: CPPFLAGS += $(DEBUG_FLAGS)
+trianglebench: LDFLAGS += $(DEBUG_FLAGS_LD)
+trianglebench: $(DESTDIR)$(TRIANGLEBENCH_TARGET)
+
 # 编译所有基准测试
-bench: linebench
+bench: linebench trianglebench
 
 # 主程序的链接规则
 $(DESTDIR)$(TARGET): $(MAIN_OBJS)
@@ -55,8 +64,11 @@ $(DESTDIR)$(TARGET): $(MAIN_OBJS)
 $(DESTDIR)$(TARGET_DEBUG): $(MAIN_OBJS)
 	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-# 线条基准测试程序的链接规则
+# 基准测试程序的链接规则
 $(DESTDIR)$(LINEBENCH_TARGET): $(LINEBENCH_OBJS)
+	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+$(DESTDIR)$(TRIANGLEBENCH_TARGET): $(TRIANGLEBENCH_OBJS)
 	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # 通用的.o文件编译规则
@@ -85,7 +97,7 @@ clean:
 	-rm -f $(OBJECTS)
 	-rm -f $(TARGET)
 	-rm -f $(TARGET_DEBUG)
-	-rm -f $(LINEBENCH_TARGET)
+	-rm -f $(ALL_TARGET)
 	-rm -f *.tga
 
 purge: clean

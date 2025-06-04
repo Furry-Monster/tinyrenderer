@@ -1,4 +1,13 @@
+#include "gmath.h"
+#include "model.h"
 #include "tgaimage.h"
+#include <vector>
+
+const TGAColor white = TGAColor(255, 255, 255, 255);
+const TGAColor red = TGAColor(255, 0, 0, 255);
+Model *model = nullptr;
+const int width = 800;
+const int height = 800;
 
 /**
  * @brief This is the draw_line5 function from linebench_main.cpp
@@ -10,7 +19,8 @@
  * @param image image to be rendered (where line will draw on)
  * @param color color of the line
  */
-void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
+void draw_line(int x0, int y0, int x1, int y1, TGAImage &image,
+               TGAColor color) {
   bool steep = false;
   if (std::abs(x0 - x1) < std::abs(y0 - y1)) {
     std::swap(x0, y0);
@@ -41,8 +51,30 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 }
 
 int main(int argc, char **argv) {
-  TGAImage image(800, 800, TGAImage::RGB);
-  TGAColor red(255, 0, 0, 255);
+  if (argc == 2) {
+    model = new Model(argv[1]);
+  } else {
+    model = new Model("obj/african_head.obj");
+  }
+
+  TGAImage image(width, height, TGAImage::RGB);
+
+  for (int i = 0; i < model->nfaces(); i++) {
+    std::vector<int> face = model->face(i);
+    for (int j = 0; j < 3; j++) {
+      Vec3f v0 = model->vert(face[j]);
+      Vec3f v1 = model->vert(face[(j + 1) % 3]);
+      int x0 = (v0.x + 1.0f) * width / 2.0f;
+      int y0 = (v0.y + 1.0f) * height / 2.0f;
+      int x1 = (v1.x + 1.0f) * width / 2.0f;
+      int y1 = (v1.y + 1.0f) * height / 2.0f;
+      draw_line(x0, y0, x1, y1, image, white);
+    }
+  }
+
+  image.flip_vertically();
+  image.write_tga_file("output.tga");
+  delete model;
 
   return 0;
 }

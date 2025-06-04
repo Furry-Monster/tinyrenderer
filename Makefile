@@ -18,8 +18,8 @@ TARGET_DEBUG = $(TARGET)_debug
 LINEBENCH_TARGET = line_bench
 
 # 源文件
-MAIN_SRCS = main.cpp tgaimage.cpp
-LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
+MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
+LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp model.cpp
 
 # object文件,等待链接
 MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)

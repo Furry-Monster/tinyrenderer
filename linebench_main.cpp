@@ -3,7 +3,7 @@
 #include <iostream>
 #include <utility>
 
-void save_image(const TGAImage &image);
+void save_image(TGAImage &image);
 
 // too slow!
 void draw_line1(int x0, int y0, int x1, int y1, TGAImage &image,
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-void save_image(const TGAImage &image) {
+void save_image(TGAImage &image) {
   std::string filename;
   std::cout << "Picture rendered succeessfully!\nWhere to save the result:\n";
   std::cin >> filename;

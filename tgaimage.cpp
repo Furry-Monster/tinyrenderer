@@ -1,6 +1,9 @@
 #include "tgaimage.h"
-#include <cstring>
+#include <fstream>
 #include <iostream>
+#include <math.h>
+#include <string.h>
+#include <time.h>
 
 TGAImage::TGAImage() : data(NULL), width(0), height(0), bytespp(0) {}
 
@@ -146,7 +149,7 @@ bool TGAImage::load_rle_data(std::ifstream &in) {
   return true;
 }
 
-bool TGAImage::write_tga_file(const char *filename, bool rle) const {
+bool TGAImage::write_tga_file(const char *filename, bool rle) {
   unsigned char developer_area_ref[4] = {0, 0, 0, 0};
   unsigned char extension_area_ref[4] = {0, 0, 0, 0};
   unsigned char footer[18] = {'T', 'R', 'U', 'E', 'V', 'I', 'S', 'I', 'O',
@@ -210,7 +213,7 @@ bool TGAImage::write_tga_file(const char *filename, bool rle) const {
 
 // TODO: it is not necessary to break a raw chunk for two equal pixels (for the
 // matter of the resulting size)
-bool TGAImage::unload_rle_data(std::ofstream &out) const {
+bool TGAImage::unload_rle_data(std::ofstream &out) {
   const unsigned char max_chunk_length = 128;
   unsigned long npixels = width * height;
   unsigned long curpix = 0;
@@ -254,25 +257,25 @@ bool TGAImage::unload_rle_data(std::ofstream &out) const {
 }
 
 TGAColor TGAImage::get(int x, int y) {
-  if (!data || x < 0 || y < 0 || x > width || y > height) {
+  if (!data || x < 0 || y < 0 || x >= width || y >= height) {
     return TGAColor();
   }
   return TGAColor(data + (x + y * width) * bytespp, bytespp);
 }
 
 bool TGAImage::set(int x, int y, TGAColor c) {
-  if (!data || x < 0 || y < 0 || x > width || y > height) {
+  if (!data || x < 0 || y < 0 || x >= width || y >= height) {
     return false;
   }
   memcpy(data + (x + y * width) * bytespp, c.raw, bytespp);
   return true;
 }
 
-int TGAImage::get_width() { return width; }
-int TGAImage::get_height() { return height; }
 int TGAImage::get_bytespp() { return bytespp; }
-unsigned char *TGAImage::buffer() { return data; }
-void TGAImage::clear() { memset((void *)data, 0, width * height * bytespp); }
+
+int TGAImage::get_width() { return width; }
+
+int TGAImage::get_height() { return height; }
 
 bool TGAImage::flip_horizontally() {
   if (!data)
@@ -306,8 +309,12 @@ bool TGAImage::flip_vertically() {
   return true;
 }
 
+unsigned char *TGAImage::buffer() { return data; }
+
+void TGAImage::clear() { memset((void *)data, 0, width * height * bytespp); }
+
 bool TGAImage::scale(int w, int h) {
-  if (w < 0 || h < 0 || !data)
+  if (w <= 0 || h <= 0 || !data)
     return false;
   unsigned char *tdata = new unsigned char[w * h * bytespp];
   int nscanline = 0;

@@ -1,24 +1,32 @@
-SYSCONF_LINK = g++
-CPPFLAGS     =
+CXX          = g++
+CXXFLAGS     = -std=c++17 -Wall -Wextra
 LDFLAGS      =
 LIBS         = -lm
 
 # 编译选项
-RELEASE_FLAGS = -O3 -Wall
-DEBUG_FLAGS   = -ggdb -g -pg -O0 -Wall -DDEBUG
+RELEASE_FLAGS = -O3 -march=native -DNDEBUG
+DEBUG_FLAGS   = -g3 -ggdb -O0 -DDEBUG -pg
+COMMON_FLAGS  = -MMD -MP
 
 # 链接选项
-RELEASE_FLAGS_LD = 
+RELEASE_FLAGS_LD = -s
 DEBUG_FLAGS_LD = -pg
 
-# 目录和目标设置
-DESTDIR = ./
+# 头文件目录
+INCLUDES = -I. -Iinclude
+BUILD_DIR = build
+RELEASE_DIR = $(BUILD_DIR)/release
+DEBUG_DIR = $(BUILD_DIR)/debug
+BENCH_DIR = $(BUILD_DIR)/bench
+
+# 目标设置
+$(shell mkdir -p $(RELEASE_DIR) $(DEBUG_DIR) $(BENCH_DIR))
 TARGET  = tinyrenderer
-TARGET_DEBUG = $(TARGET)_debug
+DEBUG_TARGET = $(TARGET)_debug
 LINEBENCH_TARGET = line_bench
 TRIANGLEBENCH_TARGET = triangle_bench
 ZBUFBENCH_TARGET = zbuf_bench
-ALL_TARGET = $(TARGET) $(TARGET_DEBUG) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET)
+ALL_TARGET = $(TARGET) $(DEBUG_TARGET) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET)
 
 # 源文件
 MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
@@ -26,65 +34,87 @@ LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
 TRIANGLEBENCH_SRCS = trianglebench_main.cpp tgaimage.cpp
 ZBUFBENCH_SRCS = zbufbench_main.cpp tgaimage.cpp
 
-# object文件,等待链接
-MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
-LINEBENCH_OBJS = $(LINEBENCH_SRCS:.cpp=.o)
-TRIANGLEBENCH_OBJS = $(TRIANGLEBENCH_SRCS:.cpp=.o)
-ZBUFBENCH_OBJS = $(ZBUFBENCH_SRCS:.cpp=.o)
-OBJECTS = $(MAIN_OBJS) $(LINEBENCH_OBJS) $(TRIANGLEBENCH_OBJS) $(ZBUFBENCH_OBJS)
+# 目标文件规则
+DEBUG_OBJS = $(MAIN_SRCS:%.cpp=$(DEBUG_DIR)/%.o)
+DEBUG_DEPS = $(DEBUG_OBJS:.o=.d)
+
+RELEASE_OBJS = $(MAIN_SRCS:%.cpp=$(RELEASE_DIR)/%.o)
+RELEASE_DEPS = $(RELEASE_OBJS:.o=.d)
+
+LINEBENCH_OBJS = $(LINEBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
+TRIANGLEBENCH_OBJS = $(TRIANGLEBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
+ZBUFBENCH_OBJS = $(ZBUFBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
+BENCH_DEPS = $(LINEBENCH_OBJS:.o=.d) $(TRIANGLEBENCH_OBJS:.o=.d) $(ZBUFBENCH_OBJS:.o=.d)
+
+# 包含所有生成的依赖文件
+-include $(DEBUG_DEPS) $(RELEASE_DEPS) $(BENCH_DEPS)
 
 .PHONY: all clean debug release bench help
 
 all: debug
 
 # 主程序的release版本
-release: CPPFLAGS += $(RELEASE_FLAGS)
+release: CXXFLAGS += $(RELEASE_FLAGS)
 release: LDFLAGS += $(RELEASE_FLAGS_LD)
-release: $(DESTDIR)$(TARGET)
+release: $(RELEASE_DIR)/$(TARGET)
 
 # 主程序的debug版本
-debug: CPPFLAGS += $(DEBUG_FLAGS)
+debug: CXXFLAGS += $(DEBUG_FLAGS)
 debug: LDFLAGS += $(DEBUG_FLAGS_LD)
-debug: $(DESTDIR)$(TARGET_DEBUG)
+debug: $(DEBUG_DIR)/$(DEBUG_TARGET)
 
 # 线条绘制基准测试
-linebench: CPPFLAGS += $(DEBUG_FLAGS)
+linebench: CXXFLAGS += $(DEBUG_FLAGS)
 linebench: LDFLAGS += $(DEBUG_FLAGS_LD)
-linebench: $(DESTDIR)$(LINEBENCH_TARGET)
+linebench: $(BENCH_DIR)/$(LINEBENCH_TARGET)
 
 # 三角形绘制基准测试
-trianglebench: CPPFLAGS += $(DEBUG_FLAGS)
+trianglebench: CXXFLAGS += $(DEBUG_FLAGS)
 trianglebench: LDFLAGS += $(DEBUG_FLAGS_LD)
-trianglebench: $(DESTDIR)$(TRIANGLEBENCH_TARGET)
+trianglebench: $(BENCH_DIR)/$(TRIANGLEBENCH_TARGET)
 
 # z缓冲基准测试
-zbufbench: CPPFLAGS += $(DEBUG_FLAGS)
+zbufbench: CXXFLAGS += $(DEBUG_FLAGS)
 zbufbench: LDFLAGS += $(DEBUG_FLAGS_LD)
-zbufbench: $(DESTDIR)$(ZBUFBENCH_TARGET)
+zbufbench: $(BENCH_DIR)/$(ZBUFBENCH_TARGET)
 
 # 编译所有基准测试
 bench: linebench trianglebench zbufbench
 
 # 主程序的链接规则
-$(DESTDIR)$(TARGET): $(MAIN_OBJS)
-	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(RELEASE_DIR)/$(TARGET): $(RELEASE_OBJS)
+	@echo "Linking (Release): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(DESTDIR)$(TARGET_DEBUG): $(MAIN_OBJS)
-	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(DEBUG_DIR)/$(DEBUG_TARGET): $(DEBUG_OBJS)
+	@echo "Linking (Debug): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # 基准测试程序的链接规则
-$(DESTDIR)$(LINEBENCH_TARGET): $(LINEBENCH_OBJS)
-	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(BENCH_DIR)/$(LINEBENCH_TARGET): $(LINEBENCH_OBJS)
+	@echo "Linking (Bench): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(DESTDIR)$(TRIANGLEBENCH_TARGET): $(TRIANGLEBENCH_OBJS)
-	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(BENCH_DIR)/$(TRIANGLEBENCH_TARGET): $(TRIANGLEBENCH_OBJS)
+	@echo "Linking (Bench): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(DESTDIR)$(ZBUFBENCH_TARGET): $(ZBUFBENCH_OBJS)
-	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(BENCH_DIR)/$(ZBUFBENCH_TARGET): $(ZBUFBENCH_OBJS)
+	@echo "Linking (Bench): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-# 通用的.o文件编译规则
-%.o: %.cpp
-	$(SYSCONF_LINK) $(CPPFLAGS) -c $< -o $@
+# 编译规则
+$(DEBUG_DIR)/%.o: %.cpp
+	@echo "Compiling (Debug): $<"
+	@$(CXX) $(CXXFLAGS) $(COMMON_FLAGS) $(DEBUG_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(RELEASE_DIR)/%.o: %.cpp
+	@echo "Compiling (Release): $<"
+	@$(CXX) $(CXXFLAGS) $(COMMON_FLAGS) $(RELEASE_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BENCH_DIR)/%.o: %.cpp
+	@echo "Compiling (Bench): $<"
+	@$(CXX) $(CXXFLAGS) $(COMMON_FLAGS) $(DEBUG_FLAGS) $(INCLUDES) -c $< -o $@
 
 help:
 	@echo "TinyRenderer Makefile Help"
@@ -92,7 +122,7 @@ help:
 	@echo ""
 	@echo "Main Targets:"
 	@echo "  make all        - Same as 'make debug'"
-	@echo "  make debug      - Build debug version with symbols ($(TARGET_DEBUG))"
+	@echo "  make debug      - Build debug version with symbols ($(DEBUG_TARGET))"
 	@echo "  make release    - Build release version with optimizations ($(TARGET))"
 	@echo ""
 	@echo "Benchmark Targets:"
@@ -105,11 +135,10 @@ help:
 	@echo ""
 
 clean:
-	-rm -f $(OBJECTS)
-	-rm -f $(TARGET)
-	-rm -f $(TARGET_DEBUG)
-	-rm -f $(ALL_TARGET)
-	-rm -f *.tga
+	@echo "Cleaning build files..."
+	@rm -rf $(BUILD_DIR)
+	@rm -f *.tga
 
 purge: clean
-	-rm -f *.out analysis*.txt
+	@echo "Removing all generated files..."
+	@rm -f *.out analysis*.txt

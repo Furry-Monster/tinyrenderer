@@ -2,6 +2,7 @@
 #include "tgaimage.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <utility>
 
@@ -51,6 +52,7 @@ void draw_triangle1(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
   draw_line(v2, v0, image, color);
 }
 
+// ummm, try to simply use scan line...?
 void draw_triangle2(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
                     TGAColor color) {
   if (v0.y > v1.y)
@@ -69,7 +71,7 @@ void draw_triangle2(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
   }
 }
 
-// this method draw a solid triangle
+// this method draw a perfect solid triangle
 void draw_triangle3(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
                     TGAColor color) {
   // To keep it simple, the triangle won't use interpolate color:
@@ -104,17 +106,62 @@ void draw_triangle3(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
   }
 }
 
+Vec3f barycentric2d(Vec2i *pts, Vec2i P) {
+  Vec3f x_vec = Vec3f(pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - P.x);
+  Vec3f y_vec = Vec3f(pts[2].y - pts[0].y, pts[1].y - pts[0].y, pts[0].y - P.y);
+  Vec3f uv = x_vec ^ y_vec;
+  if (std::abs(uv.z) < 1)
+    // triangle is degenerate, in this case return something with negative
+    // coordinates
+    return Vec3f(-1.0f, 1.0f, 1.0f);
+  else
+    return Vec3f(1.0f - (uv.x + uv.y) / uv.z, uv.y / uv.z,
+                 uv.x / uv.z); // return normalized uv result.
+}
+
+// function above is good , but not good enough for modern CPU
+void draw_triangle4(Vec2i *pts, TGAImage &image, TGAColor color) {
+  int xmax = -1, ymax = -1;
+  int xmin = width + 1, ymin = height + 1;
+  Vec2i pixelPos, cur;
+
+  for (int i = 0; i < 3; i++) {
+    cur = pts[i];
+    if (cur.x < xmin)
+      xmin = cur.x;
+    if (cur.x > xmax)
+      xmax = cur.x;
+    if (cur.y < ymin)
+      ymin = cur.y;
+    if (cur.y > ymax)
+      ymax = cur.y;
+  }
+  for (int i = xmin; i < xmax; i++) {
+    for (int j = ymin; j < ymax; j++) {
+      pixelPos.x = i;
+      pixelPos.y = j;
+      Vec3f bc = barycentric2d(pts, pixelPos);
+      if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+        continue;
+      else
+        image.set(i, j, color);
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   TGAImage image(width, height, TGAImage::RGB);
 
   Vec2i t0[3] = {Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80)};
   Vec2i t1[3] = {Vec2i(180, 50), Vec2i(150, 1), Vec2i(70, 180)};
   Vec2i t2[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)};
+  Vec2i t3[3] = {Vec2i(200, 400), Vec2i(450, 180), Vec2i(300, 700)};
 
-  for (int i = 0; i < 10000; i++) {
+  for (int i = 0; i < 1000; i++) {
     draw_triangle1(t0[0], t0[1], t0[2], image, red);
     draw_triangle2(t1[0], t1[1], t1[2], image, white);
     draw_triangle3(t2[0], t2[1], t2[2], image, green);
+    draw_triangle4(t3, image, red);
     std::cout << "Work on no." << i << " rendering...\n";
   }
 

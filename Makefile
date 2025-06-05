@@ -17,18 +17,21 @@ TARGET  = tinyrenderer
 TARGET_DEBUG = $(TARGET)_debug
 LINEBENCH_TARGET = line_bench
 TRIANGLEBENCH_TARGET = triangle_bench
-ALL_TARGET = $(TARGET) $(TARGET_DEBUG) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET)
+ZBUFBENCH_TARGET = zbuf_bench
+ALL_TARGET = $(TARGET) $(TARGET_DEBUG) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET)
 
 # 源文件
 MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
 LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
 TRIANGLEBENCH_SRCS = trianglebench_main.cpp tgaimage.cpp
+ZBUFBENCH_SRCS = zbufbench_main.cpp tgaimage.cpp
 
 # object文件,等待链接
 MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
 LINEBENCH_OBJS = $(LINEBENCH_SRCS:.cpp=.o)
 TRIANGLEBENCH_OBJS = $(TRIANGLEBENCH_SRCS:.cpp=.o)
-OBJECTS = $(MAIN_OBJS) $(LINEBENCH_OBJS) $(TRIANGLEBENCH_OBJS)
+ZBUFBENCH_OBJS = $(ZBUFBENCH_SRCS:.cpp=.o)
+OBJECTS = $(MAIN_OBJS) $(LINEBENCH_OBJS) $(TRIANGLEBENCH_OBJS) $(ZBUFBENCH_OBJS)
 
 .PHONY: all clean debug release bench help
 
@@ -54,8 +57,13 @@ trianglebench: CPPFLAGS += $(DEBUG_FLAGS)
 trianglebench: LDFLAGS += $(DEBUG_FLAGS_LD)
 trianglebench: $(DESTDIR)$(TRIANGLEBENCH_TARGET)
 
+# z缓冲基准测试
+zbufbench: CPPFLAGS += $(DEBUG_FLAGS)
+zbufbench: LDFLAGS += $(DEBUG_FLAGS_LD)
+zbufbench: $(DESTDIR)$(ZBUFBENCH_TARGET)
+
 # 编译所有基准测试
-bench: linebench trianglebench
+bench: linebench trianglebench zbufbench
 
 # 主程序的链接规则
 $(DESTDIR)$(TARGET): $(MAIN_OBJS)
@@ -69,6 +77,9 @@ $(DESTDIR)$(LINEBENCH_TARGET): $(LINEBENCH_OBJS)
 	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(DESTDIR)$(TRIANGLEBENCH_TARGET): $(TRIANGLEBENCH_OBJS)
+	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+$(DESTDIR)$(ZBUFBENCH_TARGET): $(ZBUFBENCH_OBJS)
 	$(SYSCONF_LINK) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 # 通用的.o文件编译规则

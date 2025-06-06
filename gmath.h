@@ -4,6 +4,9 @@
 #include <cmath>
 #include <ostream>
 
+template <class t> struct Vec2;
+template <class t> struct Vec3;
+
 template <class t> struct Vec2 {
   union {
     struct {
@@ -29,6 +32,7 @@ template <class t> struct Vec2 {
     *this = (*this) * (l / norm());
     return *this;
   }
+  inline Vec3<t> toVec3() { return Vec3<t>(x, y, 1); };
   template <class> friend std::ostream &operator<<(std::ostream &s, Vec2<t> &v);
 };
 
@@ -66,6 +70,7 @@ template <class t> struct Vec3 {
     *this = (*this) * (l / norm());
     return *this;
   }
+  inline Vec2<t> toVec2() { return Vec2<t>(x, y); }
   template <class> friend std::ostream &operator<<(std::ostream &s, Vec3<t> &v);
 };
 

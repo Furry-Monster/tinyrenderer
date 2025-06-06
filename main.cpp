@@ -20,22 +20,29 @@ struct RenderOptions {
   std::string outputpath = "output.tga";
   int width = 800;
   int height = 800;
-} options;
+};
 
 void print_usage() {
   std::cout
-      << "使用方法: tinyrenderer [选项] <文件路径>\n"
-      << "选项:\n"
-      << "  -m, --mode     渲染模式 (line/triangle, 默认: line)\n"
-      << "  -w, --width    输出图像宽度 (默认: 800)\n"
-      << "  -h, --height   输出图像高度 (默认: 800)\n"
-      << "  -o, --output   设置输出图像名称 (默认: output.tga)\n"
-      << "  --help         显示此帮助信息\n"
-      << "示例:\n"
+      << "Usage: tinyrenderer [Options] <filepath>\n"
+      << "Options:\n"
+      << "  -m, --mode     RenderMode (line/triangle, 默认: line)\n"
+      << "  -w, --width    Width for output image (默认: 800)\n"
+      << "  -h, --height   Height for output image (默认: 800)\n"
+      << "  -o, --output   Filename for output image (默认: output.tga)\n"
+      << "  --help         Show help message\n"
+      << "Examples:\n"
       << "  tinyrenderer -m triangle obj/african_head.obj\n"
       << "  tinyrenderer --mode line --width 1024 --height 1024 model.obj\n";
 }
 
+/**
+ * @brief Parse arguments for main, load them into RenderOption structure
+ *
+ * @param argc As defined in main()
+ * @param argv As defined in main()
+ * @return RenderOptions Option structure for rendering configurations
+ */
 RenderOptions parse_args(int argc, char **argv) {
   RenderOptions options;
   for (int i = 1; i < argc; ++i) {
@@ -52,7 +59,7 @@ RenderOptions parse_args(int argc, char **argv) {
         } else if (mode == "triangle") {
           options.mode = RenderingMode::TRIANGLE;
         } else {
-          std::cerr << "错误: 无效的渲染模式 " << mode << std::endl;
+          std::cerr << "Error: Invalid rendering mode " << mode << std::endl;
           exit(1);
         }
       }
@@ -123,7 +130,7 @@ void draw_line(int x0, int y0, int x1, int y1, TGAImage &image,
  * @param P P for finding barycentric
  * @return Vec3f uv_map , structure {1,y,x} , be careful it's inverse
  */
-Vec3f barycentric2d(Vec2i *pts, Vec2i P) {
+Vec3f barycentric2d(Vec2i *pts, Vec2f P) {
   Vec3f x_vec = Vec3f(pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - P.x);
   Vec3f y_vec = Vec3f(pts[2].y - pts[0].y, pts[1].y - pts[0].y, pts[0].y - P.y);
   Vec3f uv = x_vec ^ y_vec;
@@ -136,20 +143,35 @@ Vec3f barycentric2d(Vec2i *pts, Vec2i P) {
                  uv.x / uv.z); // return normalized uv result.
 }
 
+void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
+               int *zbuffer) {
+  if (p0.x > p1.x) {
+    std::swap(p0, p1);
+  }
+  for (int x = p0.x; x <= p1.x; x++) {
+    float t = (x - p0.x) / (float)(p1.x - p0.x);
+    int y = p0.y * (1. - t) + p1.y * t;
+    if (zbuffer[x] < y) {
+      zbuffer[x] = y;
+      image.set(x, 0, color);
+    }
+  }
+}
+
 /**
  * @brief Triangle drawing function from trianglebench_main.cpp:draw_triangle4()
  *
  * @param pts point set
+ * @param zbuf zbuffer reference for depth testing
  * @param image image to draw
  * @param color color for image (without interpolate)
  */
-void draw_triangle(Vec2i *pts, TGAImage &image, TGAColor color) {
+void draw_triangle(Vec2i *pts, float *zbuf, TGAImage &image, TGAColor color) {
   int xmax = -1, ymax = -1;
   int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
-  Vec2i pixelPos, cur;
 
   for (int i = 0; i < 3; i++) {
-    cur = pts[i];
+    Vec2i cur = pts[i];
     if (cur.x < xmin)
       xmin = cur.x;
     if (cur.x > xmax)
@@ -159,11 +181,12 @@ void draw_triangle(Vec2i *pts, TGAImage &image, TGAColor color) {
     if (cur.y > ymax)
       ymax = cur.y;
   }
+  Vec3f pixelPos, bc;
   for (int i = xmin; i < xmax; i++) {
     for (int j = ymin; j < ymax; j++) {
       pixelPos.x = i;
       pixelPos.y = j;
-      Vec3f bc = barycentric2d(pts, pixelPos);
+      bc = barycentric2d(pts, Vec2f(pixelPos.x, pixelPos.y));
       if (bc.x < 0 || bc.y < 0 || bc.z < 0)
         continue;
       else
@@ -173,14 +196,16 @@ void draw_triangle(Vec2i *pts, TGAImage &image, TGAColor color) {
 }
 
 int main(int argc, char **argv) {
-  options = parse_args(argc, argv);
+  RenderOptions options = parse_args(argc, argv);
 
   TGAImage image(options.width, options.height, TGAImage::RGB);
   Model *model = new Model(options.filepath.c_str());
   if (model == nullptr) {
-    std::cerr << "错误: 无法加载模型文件: " << options.filepath << std::endl;
+    std::cerr << "Error: Can't load model from " << options.filepath
+              << std::endl;
     return 1;
   }
+  float *zbuf = new float[options.width * options.height];
 
   if (options.mode == RenderingMode::LINE) {
     for (int i = 0; i < model->nfaces(); i++) {
@@ -213,7 +238,7 @@ int main(int argc, char **argv) {
       float intensity = n * light_dir;
       if (intensity > 0) {
         draw_triangle(
-            screen_coords, image,
+            screen_coords, zbuf, image,
             TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
       }
     }

@@ -6,67 +6,103 @@
 #include <string>
 #include <vector>
 
-Model::Model(const char *filename) : verts_(), faces_() {
+Model::Model(const char *filename)
+    : v_(), v_tex_(), v_norm_(), v_indices_(), vt_indices_(), vn_indices_() {
   std::ifstream in;
   in.open(filename, std::ifstream::in);
   if (in.fail())
     return;
+
   std::string line;
   while (!in.eof()) {
+    // read line by line
     std::getline(in, line);
     std::istringstream iss(line.c_str());
     char trash;
+
+    // parse this line with string stream
     if (!line.compare(0, 2, "v ")) {
-      iss >> trash; // skip "v "
       Vec3f v;
+      iss >> trash; // skip "v "
       for (int i = 0; i < 3; i++)
         iss >> v.raw[i];
-      verts_.push_back(v);
-    } else if (!line.compare(0, 2, "f ")) {
-      std::vector<int> f;
-      int itrash, idx;
-      iss >> trash; // skip "f "
-      while (iss >> idx >> trash >> itrash >> trash >> itrash) {
-        // read in format of "f xxx/xxx/xxx xxx/xxx/xxx xxx/xxx/xxx"
-        idx--; // idx start from 1 , but c++ array start from 0
-        f.push_back(idx);
-      }
-      faces_.push_back(f);
+      v_.push_back(v);
     } else if (!line.compare(0, 3, "vt ")) {
-      iss >> trash; // skip "vt "
       Vec3f vt;
+      iss >> trash; // skip "vt "
       for (int i = 0; i < 3; i++)
         iss >> vt.raw[i];
-      tex_verts_.push_back(vt.toVec2());
+      v_tex_.push_back(vt.toVec2());
     } else if (!line.compare(0, 3, "vn ")) {
-      iss >> trash; // skip "vn "
       Vec3f vn;
+      iss >> trash; // skip "vn "
       for (int i = 0; i < 3; i++)
         iss >> vn.raw[i];
-      norm_verts_.push_back(vn);
+      v_norm_.push_back(vn);
+    } else if (!line.compare(0, 2, "f ")) {
+      std::vector<int> vert_indices, tex_indices, norm_indices;
+      int vert_idx, tex_idx, norm_idx;
+
+      iss >> trash; // skip "f "
+      while (iss >> vert_idx >> trash >> tex_idx >> trash >> norm_idx) {
+        // read in format of "f xxx/xxx/xxx xxx/xxx/xxx xxx/xxx/xxx"
+        // idx start from 1 , but c++ array start from 0
+        vert_idx--;
+        tex_idx--;
+        norm_idx--;
+
+        vert_indices.push_back(vert_idx);
+        tex_indices.push_back(tex_idx);
+        norm_indices.push_back(norm_idx);
+      }
+
+      v_indices_.push_back(vert_indices);
+      vt_indices_.push_back(tex_indices);
+      vn_indices_.push_back(norm_indices);
     }
   }
-  std::cerr << "# verts sum as: " << verts_.size() << "\n"
-            << "# texture verts sum as: " << tex_verts_.size() << "\n"
-            << "# normal verts sum as: " << norm_verts_.size() << "\n"
-            << "# faces sum as: " << faces_.size() << std::endl;
+  std::cerr << "# verts sum as: " << v_.size() << "\n"
+            << "# texture verts sum as: " << v_tex_.size() << "\n"
+            << "# normal verts sum as: " << v_norm_.size() << "\n"
+            << "# verts indices (faces) sum as: " << v_indices_.size() << "\n"
+            << "# texture verts indices sum as: " << vt_indices_.size() << "\n"
+            << "# normal verts indices sum as: " << vn_indices_.size() << "\n";
 }
 Model::~Model() {
-  verts_.clear();
-  tex_verts_.clear();
-  norm_verts_.clear();
-  faces_.clear();
+  v_.clear();
+  v_tex_.clear();
+  v_norm_.clear();
+
+  v_indices_.clear();
+  vt_indices_.clear();
+  vn_indices_.clear();
 #ifdef DEBUG
   std::cerr << "Model destroyed" << std::endl;
 #endif
 }
 
-int Model::nverts() { return (int)verts_.size(); }
-int Model::ntexverts() { return (int)tex_verts_.size(); }
-int Model::nnormverts() { return (int)norm_verts_.size(); }
-int Model::nfaces() { return (int)faces_.size(); }
+int Model::v_num() const { return (int)v_.size(); }
+int Model::vt_num() const { return (int)v_tex_.size(); }
+int Model::vn_num() const { return (int)v_norm_.size(); }
 
-Vec3f Model::vert(int ind) { return verts_[ind]; }
-Vec2f Model::texvert(int ind) { return tex_verts_[ind]; }
-Vec3f Model::normvert(int ind) { return norm_verts_[ind]; }
-std::vector<int> Model::face(int ind) { return faces_[ind]; }
+int Model::face_size() const { return (int)v_indices_.size(); }
+int Model::v_ind_size() const { return (int)v_indices_.size(); }
+int Model::vt_ind_size() const { return (int)vt_indices_.size(); }
+int Model::vn_ind_size() const { return (int)vn_indices_.size(); }
+
+Vec3f Model::getv(int ind) const { return v_[ind]; }
+Vec2f Model::getvt(int ind) const { return v_tex_[ind]; }
+Vec3f Model::getvn(int ind) const { return v_norm_[ind]; }
+
+std::vector<std::vector<int>> Model::getface(int ind) const {
+  std::vector<std::vector<int>> f;
+  std::vector<int> v_indices = getv_ind(ind);
+  std::vector<int> vt_indices = getvt_ind(ind);
+  std::vector<int> vn_indices = getvn_ind(ind);
+  for (int i = 0; i < 3; i++)
+    f.push_back(std::vector<int>{v_indices[i], vt_indices[i], vn_indices[i]});
+  return f;
+}
+std::vector<int> Model::getv_ind(int ind) const { return v_indices_[ind]; }
+std::vector<int> Model::getvt_ind(int ind) const { return vt_indices_[ind]; }
+std::vector<int> Model::getvn_ind(int ind) const { return vn_indices_[ind]; }

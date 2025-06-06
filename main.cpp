@@ -11,6 +11,7 @@ enum RenderingMode {
   LINE,
   TRIANGLE,
   TEXTURED,
+  SHADING,
 };
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
@@ -65,6 +66,8 @@ const RenderOptions parse_args(int argc, char **argv) {
           options.mode = RenderingMode::TRIANGLE;
         } else if (mode == "textured") {
           options.mode = RenderingMode::TEXTURED;
+        } else if (mode == "shading") {
+          options.mode = RenderingMode::SHADING;
         } else {
           std::cerr << "Error: Invalid rendering mode " << mode << std::endl;
           exit(1);
@@ -259,6 +262,7 @@ void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
       pixelPos.x = i;
       pixelPos.y = j;
       pixelPos.z = 0.0f;
+
       bc = barycentric2d(pts_i, pixelPos.toVec2());
       // Do barycentric test then.
       // If barycentric have any negative value,
@@ -269,19 +273,21 @@ void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
 
       // barycentric interpolate texturing
       Vec2f tex_pos(0, 0);
-      tex_pos.x = tex_coords[0].x * bc.x + tex_coords[1].x * bc.y +
-                  tex_coords[2].x * bc.z;
-      tex_pos.y = tex_coords[0].y * bc.x + tex_coords[1].y * bc.y +
-                  tex_coords[2].y * bc.z;
+      for (int k = 0; k < 3; k++) {
+        tex_pos.x += tex_coords[k].x * bc[k];
+        tex_pos.y += tex_coords[k].y * bc[k];
+      }
       int tex_x = tex_pos.x * texture.get_width();
       int tex_y = tex_pos.y * texture.get_height();
       TGAColor color = texture.get(tex_x, tex_y);
-      color = TGAColor(color.r * intensity, color.g * intensity,
-                       color.b * intensity, color.a);
+
+      // lighting,well it doesn't fit for me...
+      // color = TGAColor(color.r * intensity, color.g * intensity,
+      //                  color.b * intensity, color.a);
 
       // depth buffer testing here.
-      pixelPos.z = screen_coords[0].z * bc.x + screen_coords[1].z * bc.y +
-                   screen_coords[2].z * bc.z;
+      for (int k = 0; k < 3; k++)
+        pixelPos.z += screen_coords[k].z * bc[k];
       if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
         zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
         // if only we update buffer , the "frame buffer" would be
@@ -324,11 +330,11 @@ int main(int argc, char **argv) {
   }
 
   if (options.mode == RenderingMode::LINE) {
-    for (int i = 0; i < model->nfaces(); i++) {
-      std::vector<int> face = model->face(i);
+    for (int i = 0; i < model->v_ind_size(); i++) {
+      std::vector<int> face = model->getv_ind(i);
       for (int j = 0; j < 3; j++) {
-        Vec3f v0 = model->vert(face[j]);
-        Vec3f v1 = model->vert(face[(j + 1) % 3]);
+        Vec3f v0 = model->getv(face[j]);
+        Vec3f v1 = model->getv(face[(j + 1) % 3]);
         int x0 = (v0.x + 1.) * options.width / 2.;
         int y0 = (v0.y + 1.) * options.height / 2.;
         int x1 = (v1.x + 1.) * options.width / 2.;
@@ -343,13 +349,13 @@ int main(int argc, char **argv) {
       zbuf[i] = -std::numeric_limits<float>::max();
 
     Vec3f light_dir(0, 0, -1); // define light_dir
-    for (int i = 0; i < model->nfaces(); i++) {
+    for (int i = 0; i < model->v_ind_size(); i++) {
       // load data from model
-      std::vector<int> face = model->face(i);
+      std::vector<int> face = model->getv_ind(i);
       Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
       Vec3f world_coords[3];  // coord of 3 verts without any transform
       for (int j = 0; j < 3; j++) {
-        Vec3f v = model->vert(face[j]);
+        Vec3f v = model->getv(face[j]);
         world_coords[j] = v;
         screen_coords[j] = world2screen(v, options.width, options.height);
       }
@@ -374,18 +380,27 @@ int main(int argc, char **argv) {
       zbuf[i] = -std::numeric_limits<float>::max();
 
     Vec3f light_dir(0, 0, -1); // define light_dir
-    for (int i = 0; i < model->nfaces(); i++) {
+
+    for (int i = 0; i < model->face_size(); i++) {
       // load data from model
-      std::vector<int> face = model->face(i);
-      Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
+      std::vector<int> v_ind_pair = model->getv_ind(i);
+      std::vector<int> vt_ind_pair = model->getvt_ind(i);
+      std::vector<int> vn_ind_pair = model->getvn_ind(i);
+
+      Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
       Vec3f world_coords[3];  // coord of 3 verts without any transform
       Vec2f tex_coords[3];    // coord of 3 verts for texturing
+      Vec3f norm_coords[3];   // coord of 3 vertex for lighting
+
       for (int j = 0; j < 3; j++) {
-        Vec3f v = model->vert(face[j]);
-        Vec2f tv = model->texvert(face[j]);
+        Vec3f v = model->getv(v_ind_pair[j]);
+        Vec2f vt = model->getvt(vt_ind_pair[j]);
+        Vec3f vn = model->getvn(vn_ind_pair[j]);
+
         world_coords[j] = v;
         screen_coords[j] = world2screen(v, options.width, options.height);
-        tex_coords[j] = tv;
+        tex_coords[j] = vt;
+        norm_coords[j] = vn;
       }
 
       // calculate light intensity
@@ -400,6 +415,8 @@ int main(int argc, char **argv) {
                       intensity);
       }
     }
+  } else if (options.mode == RenderingMode::SHADING) {
+    std::cout << "Not implemented yet" << std::endl;
   }
 
   image.flip_vertically();

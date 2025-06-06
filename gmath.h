@@ -44,6 +44,7 @@ template <typename T> struct Vec2 {
   constexpr Vec2<T> operator*(T scalar) const noexcept {
     return Vec2<T>(u * scalar, v * scalar);
   }
+  constexpr T operator[](int idx) const { return raw[idx]; }
 
   // vector ops
   T norm() const { return std::sqrt(x * x + y * y); }
@@ -108,6 +109,7 @@ template <typename T> struct Vec3 {
   constexpr T operator*(const Vec3<T> &rhs) const noexcept {
     return x * rhs.x + y * rhs.y + z * rhs.z;
   }
+  constexpr T operator[](size_t idx) const { return raw[idx]; }
 
   // vector ops.
   T norm() const { return std::sqrt(x * x + y * y + z * z); }

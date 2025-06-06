@@ -46,6 +46,7 @@ bool TGAImage::read_tga_file(const char *filename) {
   if (data)
     delete[] data;
   data = NULL;
+
   std::ifstream in;
   in.open(filename, std::ios::binary);
   if (!in.is_open()) {
@@ -95,7 +96,10 @@ bool TGAImage::read_tga_file(const char *filename) {
   if (header.imagedescriptor & 0x10) {
     flip_horizontally();
   }
-  std::cerr << width << "x" << height << "/" << bytespp * 8 << "\n";
+#ifdef DEBUG
+  std::cerr << "Successfully load image from: " << filename << "\n"
+            << "\t" << width << " x " << height << " / " << bytespp * 8 << "\n";
+#endif
   in.close();
   return true;
 }

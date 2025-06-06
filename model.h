@@ -7,10 +7,15 @@
 // Only support .obj format Models
 class Model {
 private:
-  std::vector<Vec3f> verts_;            // vertex
-  std::vector<Vec2f> tex_verts_;        // texture vertex
-  std::vector<Vec3f> norm_verts_;       // normal vertex
-  std::vector<std::vector<int>> faces_; // faces
+  // vertex properties
+  std::vector<Vec3f> v_;      // vertex
+  std::vector<Vec2f> v_tex_;  // texture vertex
+  std::vector<Vec3f> v_norm_; // normal vertex
+
+  // face properties
+  std::vector<std::vector<int>> v_indices_;  // vertex indices
+  std::vector<std::vector<int>> vt_indices_; // texture vertex indices
+  std::vector<std::vector<int>> vn_indices_; // normal vertex indices
 
 public:
   // constructors
@@ -18,16 +23,24 @@ public:
   ~Model();
 
   // get sizes
-  int nverts();
-  int ntexverts();
-  int nnormverts();
-  int nfaces();
+  int v_num() const;
+  int vt_num() const;
+  int vn_num() const;
+
+  int face_size() const;
+  int v_ind_size() const;
+  int vt_ind_size() const;
+  int vn_ind_size() const;
 
   // index find
-  Vec3f vert(int ind);
-  Vec2f texvert(int ind);
-  Vec3f normvert(int ind);
-  std::vector<int> face(int ind);
+  Vec3f getv(int ind) const;
+  Vec2f getvt(int ind) const;
+  Vec3f getvn(int ind) const;
+
+  std::vector<std::vector<int>> getface(int ind) const;
+  std::vector<int> getv_ind(int ind) const;
+  std::vector<int> getvt_ind(int ind) const;
+  std::vector<int> getvn_ind(int ind) const;
 };
 
 #endif

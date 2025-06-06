@@ -3,17 +3,9 @@
 .idea/
 
 # exclude target & builded
-*.o                     
-*.s                     
-*.i                     
-*.d
 build/
 
-tinyrenderer*
-
-# exclude benchmark files
+# exclude other files
 *.out                   
 analysis*.txt
-
-# exclude output files
-*.tga
+/*.tga 

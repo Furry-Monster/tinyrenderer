@@ -149,7 +149,7 @@ void draw_triangle4(Vec2i *pts, TGAImage &image, TGAColor color) {
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   TGAImage image(width, height, TGAImage::RGB);
 
   Vec2i t0[3] = {Vec2i(10, 70), Vec2i(50, 160), Vec2i(70, 80)};

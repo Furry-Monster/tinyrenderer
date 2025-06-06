@@ -115,7 +115,7 @@ void draw_line5(int x0, int y0, int x1, int y1, TGAImage &image,
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   TGAImage image(800, 800, TGAImage::RGB);
   TGAColor red(255, 0, 0, 255);
   TGAColor green(0, 255, 0, 255);

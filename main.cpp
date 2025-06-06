@@ -3,6 +3,7 @@
 #include "tgaimage.h"
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -16,8 +17,10 @@ const TGAColor red = TGAColor(255, 0, 0, 255);
 
 struct RenderOptions {
   RenderingMode mode = RenderingMode::LINE;
+
   std::string filepath = "obj/african_head.obj";
   std::string outputpath = "output.tga";
+
   int width = 800;
   int height = 800;
 };
@@ -43,7 +46,7 @@ void print_usage() {
  * @param argv As defined in main()
  * @return RenderOptions Option structure for rendering configurations
  */
-RenderOptions parse_args(int argc, char **argv) {
+const RenderOptions parse_args(int argc, char **argv) {
   RenderOptions options;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
@@ -216,13 +219,21 @@ void draw_triangle(Vec3f *pts, float *zbuf, TGAImage &image, TGAColor color) {
   }
 }
 
+/**
+ * @brief Transform world position to screen position, keep z value
+ *
+ * @param v vertex transform in world coord.
+ * @param width viewport width.
+ * @param height viewport height.
+ * @return Vec3f vertex transform in screen coord.
+ */
 Vec3f world2screen(Vec3f v, int width, int height) {
   return Vec3f(int((v.x + 1.) * width / 2. + .5),
                int((v.y + 1.) * height / 2. + .5), v.z);
 }
 
 int main(int argc, char **argv) {
-  RenderOptions options = parse_args(argc, argv);
+  const RenderOptions options = parse_args(argc, argv);
 
   TGAImage image(options.width, options.height, TGAImage::RGB);
   Model *model = new Model(options.filepath.c_str());
@@ -232,6 +243,8 @@ int main(int argc, char **argv) {
     return 1;
   }
   float *zbuf = new float[options.width * options.height];
+  for (int i = 0; i < options.width * options.height; i++)
+    zbuf[i] = -std::numeric_limits<float>::max();
 
   if (options.mode == RenderingMode::LINE) {
     for (int i = 0; i < model->nfaces(); i++) {

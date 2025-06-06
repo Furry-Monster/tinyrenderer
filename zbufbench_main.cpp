@@ -45,7 +45,7 @@ void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
   }
 }
 
-int main(int argc, char **argv) {
+int main() {
   {
     TGAImage scene(800, 800, TGAImage::RGB);
 

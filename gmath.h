@@ -3,75 +3,123 @@
 
 #include <cmath>
 #include <ostream>
+#include <type_traits>
 
-template <class t> struct Vec2;
-template <class t> struct Vec3;
+template <typename t> struct Vec2;
+template <typename t> struct Vec3;
 
-template <class t> struct Vec2 {
+/**
+ * @brief 2D Vector struct template
+ *
+ * @tparam T Type of vector value, must be arithmetic.
+ */
+template <typename T> struct Vec2 {
+  static_assert(std::is_arithmetic<T>::value,
+                "Vector type must be arithmetic!");
+
   union {
     struct {
-      t u, v;
+      T u, v;
     };
     struct {
-      t x, y;
+      T x, y;
     };
-    t raw[2];
+    T raw[2];
   };
 
-  Vec2() : u(0), v(0) {}
-  Vec2(t _u, t _v) : u(_u), v(_v) {}
-  inline Vec2<t> operator+(const Vec2<t> &vec2add) const {
-    return Vec2<t>(u + vec2add.u, v + vec2add.v);
+  // constructors
+  constexpr Vec2() noexcept : u(0), v(0) {}
+  constexpr Vec2(T _u, T _v) noexcept : u(_u), v(_v) {}
+
+  // operator overrides.
+  constexpr Vec2<T> operator+(const Vec2<T> &rhs) const noexcept {
+    return Vec2<T>(u + rhs.u, v + rhs.v);
   }
-  inline Vec2<t> operator-(const Vec2<t> &vec2sub) const {
-    return Vec2<t>(u - vec2sub.u, v - vec2sub.v);
+  constexpr Vec2<T> operator-(const Vec2<T> &rhs) const noexcept {
+    return Vec2<T>(u - rhs.u, v - rhs.v);
   }
-  inline Vec2<t> operator*(float f) const { return Vec2<t>(u * f, v * f); }
-  float norm() const { return std::sqrt(x * x + y * y); }
-  Vec2<t> &normalize(t l = 1) {
-    *this = (*this) * (l / norm());
+  constexpr Vec2<T> operator*(T scalar) const noexcept {
+    return Vec2<T>(u * scalar, v * scalar);
+  }
+
+  // vector ops
+  T norm() const { return std::sqrt(x * x + y * y); }
+  Vec2<T> &normalize(T l = 1) {
+    T n = norm();
+    if (n > 0) {
+      T scale = l / n;
+      u *= scale;
+      v *= scale;
+    }
     return *this;
   }
-  inline Vec3<t> toVec3() { return Vec3<t>(x, y, 1); };
-  template <class> friend std::ostream &operator<<(std::ostream &s, Vec2<t> &v);
+
+  // other ops.
+  constexpr Vec3<T> toVec3() const noexcept { return Vec3<T>(x, y, 1); };
+
+  template <typename U>
+  friend std::ostream &operator<<(std::ostream &s, Vec2<T> &v);
 };
 
-template <class t> struct Vec3 {
+/**
+ * @brief 3D Vector struct template
+ *
+ * @tparam T Type of vector value, must be arithmetic.
+ */
+template <typename T> struct Vec3 {
+  static_assert(std::is_arithmetic<T>::value,
+                "Vector type must be arithmetic!");
+
   union {
     struct {
-      t x, y, z;
+      T x, y, z;
     };
     struct {
-      t ivert, iuv, inorm;
+      T ivert, iuv, inorm;
     };
-    t raw[3];
+    T raw[3];
   };
-  Vec3() : x(0), y(0), z(0) {}
-  Vec3(t _x, t _y, t _z) : x(_x), y(_y), z(_z) {}
-  inline Vec3<t> operator^(const Vec3<t> &vec2cross) const {
-    return Vec3<t>(y * vec2cross.z - z * vec2cross.y,
-                   z * vec2cross.x - x * vec2cross.z,
-                   x * vec2cross.y - y * vec2cross.x);
+
+  // constructors
+  constexpr Vec3() noexcept : x(0), y(0), z(0) {}
+  constexpr Vec3(T _x, T _y, T _z) noexcept : x(_x), y(_y), z(_z) {}
+
+  // operator overrides
+  constexpr Vec3<T> operator^(const Vec3<T> &rhs) const noexcept {
+    return Vec3<T>(y * rhs.z - z * rhs.y, z * rhs.x - x * rhs.z,
+                   x * rhs.y - y * rhs.x);
   }
-  inline Vec3<t> operator+(const Vec3<t> &vec2add) const {
-    return Vec3<t>(x + vec2add.x, y + vec2add.y, z + vec2add.z);
+  constexpr Vec3<T> operator+(const Vec3<T> &rhs) const noexcept {
+    return Vec3<T>(x + rhs.x, y + rhs.y, z + rhs.z);
   }
-  inline Vec3<t> operator-(const Vec3<t> &vec2sub) const {
-    return Vec3<t>(x - vec2sub.x, y - vec2sub.y, z - vec2sub.z);
+  constexpr Vec3<T> operator-(const Vec3<T> &rhs) const noexcept {
+    return Vec3<T>(x - rhs.x, y - rhs.y, z - rhs.z);
   }
-  inline Vec3<t> operator*(float f) const {
-    return Vec3<t>(x * f, y * f, z * f);
+  constexpr Vec3<T> operator*(T scalar) const noexcept {
+    return Vec3<T>(x * scalar, y * scalar, z * scalar);
   }
-  inline t operator*(const Vec3<t> &vec2dot) const {
-    return x * vec2dot.x + y * vec2dot.y + z * vec2dot.z;
+  constexpr T operator*(const Vec3<T> &rhs) const noexcept {
+    return x * rhs.x + y * rhs.y + z * rhs.z;
   }
-  float norm() const { return std::sqrt(x * x + y * y + z * z); }
-  Vec3<t> &normalize(t l = 1) {
-    *this = (*this) * (l / norm());
+
+  // vector ops.
+  T norm() const { return std::sqrt(x * x + y * y + z * z); }
+  Vec3<T> &normalize(T l = 1) {
+    T n = norm();
+    if (n > 0) {
+      T scale = l / n;
+      x *= scale;
+      y *= scale;
+      z *= scale;
+    }
     return *this;
   }
-  inline Vec2<t> toVec2() { return Vec2<t>(x, y); }
-  template <class> friend std::ostream &operator<<(std::ostream &s, Vec3<t> &v);
+
+  // other ops
+  constexpr Vec2<T> toVec2() const noexcept { return Vec2<T>(x, y); }
+
+  template <typename U>
+  friend std::ostream &operator<<(std::ostream &s, Vec3<T> &v);
 };
 
 typedef Vec2<float> Vec2f;
@@ -79,14 +127,14 @@ typedef Vec2<int> Vec2i;
 typedef Vec3<float> Vec3f;
 typedef Vec3<int> Vec3i;
 
-template <class t> std::ostream &operator<<(std::ostream &s, Vec2<t> &v) {
+template <typename T> std::ostream &operator<<(std::ostream &s, Vec2<T> &v) {
   s << "(" << v.x << ", " << v.y << ")\n";
   return s;
 }
 
-template <class t> std::ostream &operator<<(std::ostream &s, Vec3<t> &v) {
+template <typename T> std::ostream &operator<<(std::ostream &s, Vec3<T> &v) {
   s << "(" << v.x << ", " << v.y << ", " << v.z << ")\n";
   return s;
 }
 
-#endif
+#endif // __GMATH_H__

@@ -30,6 +30,9 @@ template <typename T> struct Vec2 {
   // constructors
   constexpr Vec2() noexcept : u(0), v(0) {}
   constexpr Vec2(T _u, T _v) noexcept : u(_u), v(_v) {}
+  template <typename U>
+  constexpr explicit Vec2(const Vec3<U> &other) noexcept
+      : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)) {}
 
   // operator overrides.
   constexpr Vec2<T> operator+(const Vec2<T> &rhs) const noexcept {
@@ -83,6 +86,10 @@ template <typename T> struct Vec3 {
   // constructors
   constexpr Vec3() noexcept : x(0), y(0), z(0) {}
   constexpr Vec3(T _x, T _y, T _z) noexcept : x(_x), y(_y), z(_z) {}
+  template <typename U>
+  constexpr explicit Vec3(const Vec3<U> &other)
+      : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)),
+        z(static_cast<T>(other.z)) {}
 
   // operator overrides
   constexpr Vec3<T> operator^(const Vec3<T> &rhs) const noexcept {

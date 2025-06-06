@@ -128,11 +128,16 @@ void draw_line(int x0, int y0, int x1, int y1, TGAImage &image,
  *
  * @param pts triangle set
  * @param P P for finding barycentric
- * @return Vec3f uv_map , structure {1,y,x} , be careful it's inverse
+ * @return Vec3f uv_map , structure {1,y,x} , be careful it's inverse :-)
  */
 Vec3f barycentric2d(Vec2i *pts, Vec2f P) {
   Vec3f x_vec = Vec3f(pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - P.x);
   Vec3f y_vec = Vec3f(pts[2].y - pts[0].y, pts[1].y - pts[0].y, pts[0].y - P.y);
+  // cross multiply here get the solution for linear problem:
+  // u * AB_vec+ v * AC_vec + PA_vec = 0_vec
+  // we can depart it along axis x & y :
+  // [u * AB_vec_x + v * AC_vec_x + PA_vac_x = 0]
+  // [u * AB_vec_y + v * AC_vec_y + PA_vac_y = 0]
   Vec3f uv = x_vec ^ y_vec;
   if (std::abs(uv.z) < 1)
     // triangle is degenerate, in this case return something with negative
@@ -143,20 +148,20 @@ Vec3f barycentric2d(Vec2i *pts, Vec2f P) {
                  uv.x / uv.z); // return normalized uv result.
 }
 
-void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
-               int *zbuffer) {
-  if (p0.x > p1.x) {
-    std::swap(p0, p1);
-  }
-  for (int x = p0.x; x <= p1.x; x++) {
-    float t = (x - p0.x) / (float)(p1.x - p0.x);
-    int y = p0.y * (1. - t) + p1.y * t;
-    if (zbuffer[x] < y) {
-      zbuffer[x] = y;
-      image.set(x, 0, color);
-    }
-  }
-}
+// void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
+//  int *zbuffer) {
+// if (p0.x > p1.x) {
+// std::swap(p0, p1);
+// }
+// for (int x = p0.x; x <= p1.x; x++) {
+// float t = (x - p0.x) / (float)(p1.x - p0.x);
+// int y = p0.y * (1. - t) + p1.y * t;
+// if (zbuffer[x] < y) {
+// zbuffer[x] = y;
+// image.set(x, 0, color);
+// }
+// }
+// }
 
 /**
  * @brief Triangle drawing function from trianglebench_main.cpp:draw_triangle4()
@@ -166,12 +171,15 @@ void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
  * @param image image to draw
  * @param color color for image (without interpolate)
  */
-void draw_triangle(Vec2i *pts, float *zbuf, TGAImage &image, TGAColor color) {
+void draw_triangle(Vec3f *pts, float *zbuf, TGAImage &image, TGAColor color) {
   int xmax = -1, ymax = -1;
   int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
+  Vec2i pts_i[3];
 
   for (int i = 0; i < 3; i++) {
-    Vec2i cur = pts[i];
+    Vec2i cur = Vec2i(pts[i]);
+    pts_i[i] = cur;
+
     if (cur.x < xmin)
       xmin = cur.x;
     if (cur.x > xmax)
@@ -181,18 +189,36 @@ void draw_triangle(Vec2i *pts, float *zbuf, TGAImage &image, TGAColor color) {
     if (cur.y > ymax)
       ymax = cur.y;
   }
+
   Vec3f pixelPos, bc;
   for (int i = xmin; i < xmax; i++) {
     for (int j = ymin; j < ymax; j++) {
       pixelPos.x = i;
       pixelPos.y = j;
-      bc = barycentric2d(pts, Vec2f(pixelPos.x, pixelPos.y));
+      pixelPos.z = 0.0f;
+      bc = barycentric2d(pts_i, pixelPos.toVec2());
+      // Do barycentric test then.
+      // If barycentric have any negative value,
+      // the pixelPos would be regard to be outlined,
+      // although it's inside bounding box
       if (bc.x < 0 || bc.y < 0 || bc.z < 0)
         continue;
-      else
+      // depth buffer testing here.
+      pixelPos.z = pts[0].z * bc.x + pts[1].z * bc.y + pts[2].z * bc.z;
+      if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
+        zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
+        // if only we update buffer , the "frame buffer" would be
+        // update (actually we consider the image reference as our frame buffer
+        // XD )
         image.set(i, j, color);
+      }
     }
   }
+}
+
+Vec3f world2screen(Vec3f v, int width, int height) {
+  return Vec3f(int((v.x + 1.) * width / 2. + .5),
+               int((v.y + 1.) * height / 2. + .5), v.z);
 }
 
 int main(int argc, char **argv) {
@@ -223,19 +249,23 @@ int main(int argc, char **argv) {
   } else if (options.mode == RenderingMode::TRIANGLE) {
     Vec3f light_dir(0, 0, -1); // define light_dir
     for (int i = 0; i < model->nfaces(); i++) {
+      // load data from model
       std::vector<int> face = model->face(i);
-      Vec2i screen_coords[3];
-      Vec3f world_coords[3];
+      Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
+      Vec3f world_coords[3];  // coord of 3 verts without any transform
       for (int j = 0; j < 3; j++) {
         Vec3f v = model->vert(face[j]);
-        screen_coords[j] = Vec2i((v.x + 1.) * options.width / 2.,
-                                 (v.y + 1.) * options.height / 2.);
         world_coords[j] = v;
+        screen_coords[j] = world2screen(v, options.width, options.height);
       }
+
+      // calculate light intensity
       Vec3f n = (world_coords[2] - world_coords[0]) ^
                 (world_coords[1] - world_coords[0]);
       n.normalize();
       float intensity = n * light_dir;
+
+      // render on image, triangle as piece
       if (intensity > 0) {
         draw_triangle(
             screen_coords, zbuf, image,

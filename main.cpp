@@ -10,7 +10,7 @@
 enum RenderingMode {
   LINE,
   TRIANGLE,
-  TEXTURED,
+  TEXTURING,
   SHADING,
 };
 
@@ -65,7 +65,7 @@ const RenderOptions parse_args(int argc, char **argv) {
         } else if (mode == "triangle") {
           options.mode = RenderingMode::TRIANGLE;
         } else if (mode == "textured") {
-          options.mode = RenderingMode::TEXTURED;
+          options.mode = RenderingMode::TEXTURING;
         } else if (mode == "shading") {
           options.mode = RenderingMode::SHADING;
         } else {
@@ -158,21 +158,6 @@ Vec3f barycentric2d(Vec2i *pts, Vec2f P) {
                  uv.x / uv.z); // return normalized uv result.
 }
 
-// void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
-//  int *zbuffer) {
-// if (p0.x > p1.x) {
-// std::swap(p0, p1);
-// }
-// for (int x = p0.x; x <= p1.x; x++) {
-// float t = (x - p0.x) / (float)(p1.x - p0.x);
-// int y = p0.y * (1. - t) + p1.y * t;
-// if (zbuffer[x] < y) {
-// zbuffer[x] = y;
-// image.set(x, 0, color);
-// }
-// }
-// }
-
 /**
  * @brief Triangle drawing function from trianglebench_main.cpp:draw_triangle4()
  *
@@ -240,54 +225,54 @@ void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
                    TGAImage &image, const TGAImage &texture, float intensity) {
   int xmax = -1, ymax = -1;
   int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
-  Vec2i pts_i[3];
+  Vec2i screen_2i[3];
 
   for (int i = 0; i < 3; i++) {
-    Vec2i cur = Vec2i(screen_coords[i]);
-    pts_i[i] = cur;
+    Vec2i cur_sc = Vec2i(screen_coords[i]);
+    screen_2i[i] = cur_sc;
 
-    if (cur.x < xmin)
-      xmin = cur.x;
-    if (cur.x > xmax)
-      xmax = cur.x;
-    if (cur.y < ymin)
-      ymin = cur.y;
-    if (cur.y > ymax)
-      ymax = cur.y;
+    if (cur_sc.x < xmin)
+      xmin = cur_sc.x;
+    if (cur_sc.x > xmax)
+      xmax = cur_sc.x;
+    if (cur_sc.y < ymin)
+      ymin = cur_sc.y;
+    if (cur_sc.y > ymax)
+      ymax = cur_sc.y;
   }
 
-  Vec3f pixelPos, bc;
+  Vec3f pixelPos, bc_screen;
   for (int i = xmin; i < xmax; i++) {
     for (int j = ymin; j < ymax; j++) {
       pixelPos.x = i;
       pixelPos.y = j;
       pixelPos.z = 0.0f;
 
-      bc = barycentric2d(pts_i, pixelPos.toVec2());
+      bc_screen = barycentric2d(screen_2i, pixelPos.toVec2());
       // Do barycentric test then.
       // If barycentric have any negative value,
       // the pixelPos would be regard to be outlined,
       // although it's inside bounding box
-      if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+      if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)
         continue;
 
       // barycentric interpolate texturing
       Vec2f tex_pos(0, 0);
       for (int k = 0; k < 3; k++) {
-        tex_pos.x += tex_coords[k].x * bc[k];
-        tex_pos.y += tex_coords[k].y * bc[k];
+        tex_pos.x += tex_coords[k].x * bc_screen[k];
+        tex_pos.y += tex_coords[k].y * bc_screen[k];
       }
       int tex_x = tex_pos.x * texture.get_width();
       int tex_y = tex_pos.y * texture.get_height();
       TGAColor color = texture.get(tex_x, tex_y);
 
-      // lighting,well it doesn't fit for me...
-      // color = TGAColor(color.r * intensity, color.g * intensity,
-      //                  color.b * intensity, color.a);
+      // an easy lighting,well, it's not enough for me...
+      color = TGAColor(color.r * intensity, color.g * intensity,
+                       color.b * intensity, color.a);
 
       // depth buffer testing here.
       for (int k = 0; k < 3; k++)
-        pixelPos.z += screen_coords[k].z * bc[k];
+        pixelPos.z += screen_coords[k].z * bc_screen[k];
       if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
         zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
         // if only we update buffer , the "frame buffer" would be
@@ -328,6 +313,7 @@ int main(int argc, char **argv) {
               << std::endl;
     return 1;
   }
+  texture.flip_vertically();
 
   if (options.mode == RenderingMode::LINE) {
     for (int i = 0; i < model->v_ind_size(); i++) {
@@ -373,7 +359,7 @@ int main(int argc, char **argv) {
             TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
       }
     }
-  } else if (options.mode == RenderingMode::TEXTURED) {
+  } else if (options.mode == RenderingMode::TEXTURING) {
     // allocate depth buffer.
     float *zbuf = new float[options.width * options.height];
     for (int i = 0; i < options.width * options.height; i++)
@@ -381,11 +367,12 @@ int main(int argc, char **argv) {
 
     Vec3f light_dir(0, 0, -1); // define light_dir
 
+    // render each face/piece
     for (int i = 0; i < model->face_size(); i++) {
       // load data from model
-      std::vector<int> v_ind_pair = model->getv_ind(i);
-      std::vector<int> vt_ind_pair = model->getvt_ind(i);
-      std::vector<int> vn_ind_pair = model->getvn_ind(i);
+      std::vector<int> v_ind_tuple = model->getv_ind(i);
+      std::vector<int> vt_ind_tuple = model->getvt_ind(i);
+      std::vector<int> vn_ind_tuple = model->getvn_ind(i);
 
       Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
       Vec3f world_coords[3];  // coord of 3 verts without any transform
@@ -393,9 +380,9 @@ int main(int argc, char **argv) {
       Vec3f norm_coords[3];   // coord of 3 vertex for lighting
 
       for (int j = 0; j < 3; j++) {
-        Vec3f v = model->getv(v_ind_pair[j]);
-        Vec2f vt = model->getvt(vt_ind_pair[j]);
-        Vec3f vn = model->getvn(vn_ind_pair[j]);
+        Vec3f v = model->getv(v_ind_tuple[j]);
+        Vec2f vt = model->getvt(vt_ind_tuple[j]);
+        Vec3f vn = model->getvn(vn_ind_tuple[j]);
 
         world_coords[j] = v;
         screen_coords[j] = world2screen(v, options.width, options.height);

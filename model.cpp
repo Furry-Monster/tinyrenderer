@@ -27,15 +27,15 @@ Model::Model(const char *filename)
       for (int i = 0; i < 3; i++)
         iss >> v.raw[i];
       v_.push_back(v);
-    } else if (!line.compare(0, 3, "vt ")) {
+    } else if (!line.compare(0, 4, "vt  ")) {
       Vec3f vt;
-      iss >> trash; // skip "vt "
+      iss >> trash >> trash; // skip "vt  "
       for (int i = 0; i < 3; i++)
         iss >> vt.raw[i];
       v_tex_.push_back(vt.toVec2());
-    } else if (!line.compare(0, 3, "vn ")) {
+    } else if (!line.compare(0, 4, "vn  ")) {
       Vec3f vn;
-      iss >> trash; // skip "vn "
+      iss >> trash >> trash; // skip "vn  "
       for (int i = 0; i < 3; i++)
         iss >> vn.raw[i];
       v_norm_.push_back(vn);

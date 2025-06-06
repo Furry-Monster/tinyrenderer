@@ -10,6 +10,7 @@
 enum RenderingMode {
   LINE,
   TRIANGLE,
+  TEXTURED,
 };
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
@@ -18,7 +19,8 @@ const TGAColor red = TGAColor(255, 0, 0, 255);
 struct RenderOptions {
   RenderingMode mode = RenderingMode::LINE;
 
-  std::string filepath = "obj/african_head.obj";
+  std::string objpath = "obj/african_head.obj";
+  std::string texpath = "texture/african_head_diffuse.tga";
   std::string outputpath = "output.tga";
 
   int width = 800;
@@ -29,7 +31,7 @@ void print_usage() {
   std::cout
       << "Usage: tinyrenderer [Options] <filepath>\n"
       << "Options:\n"
-      << "  -m, --mode     RenderMode (line/triangle, 默认: line)\n"
+      << "  -m, --mode     RenderMode (line/triangle/textured, 默认: line)\n"
       << "  -w, --width    Width for output image (默认: 800)\n"
       << "  -h, --height   Height for output image (默认: 800)\n"
       << "  -o, --output   Filename for output image (默认: output.tga)\n"
@@ -61,6 +63,8 @@ const RenderOptions parse_args(int argc, char **argv) {
           options.mode = RenderingMode::LINE;
         } else if (mode == "triangle") {
           options.mode = RenderingMode::TRIANGLE;
+        } else if (mode == "textured") {
+          options.mode = RenderingMode::TEXTURED;
         } else {
           std::cerr << "Error: Invalid rendering mode " << mode << std::endl;
           exit(1);
@@ -79,7 +83,7 @@ const RenderOptions parse_args(int argc, char **argv) {
         options.outputpath = argv[++i];
       }
     } else if (arg[0] != '-') {
-      options.filepath = arg;
+      options.objpath = arg;
     }
   }
   return options;
@@ -220,6 +224,76 @@ void draw_triangle(Vec3f *pts, float *zbuf, TGAImage &image, TGAColor color) {
 }
 
 /**
+ * @brief Drawing triangle piece and texturing
+ *
+ * @param screen_coords screen coords for locating pieces
+ * @param tex_coords texture coords for locating texture
+ * @param zbuf zbuffer reference for depth testing
+ * @param image image to draw
+ * @param texture textrue image reference
+ * @param intensity light intensity, so simple :-(
+ */
+void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
+                   TGAImage &image, const TGAImage &texture, float intensity) {
+  int xmax = -1, ymax = -1;
+  int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
+  Vec2i pts_i[3];
+
+  for (int i = 0; i < 3; i++) {
+    Vec2i cur = Vec2i(screen_coords[i]);
+    pts_i[i] = cur;
+
+    if (cur.x < xmin)
+      xmin = cur.x;
+    if (cur.x > xmax)
+      xmax = cur.x;
+    if (cur.y < ymin)
+      ymin = cur.y;
+    if (cur.y > ymax)
+      ymax = cur.y;
+  }
+
+  Vec3f pixelPos, bc;
+  for (int i = xmin; i < xmax; i++) {
+    for (int j = ymin; j < ymax; j++) {
+      pixelPos.x = i;
+      pixelPos.y = j;
+      pixelPos.z = 0.0f;
+      bc = barycentric2d(pts_i, pixelPos.toVec2());
+      // Do barycentric test then.
+      // If barycentric have any negative value,
+      // the pixelPos would be regard to be outlined,
+      // although it's inside bounding box
+      if (bc.x < 0 || bc.y < 0 || bc.z < 0)
+        continue;
+
+      // barycentric interpolate texturing
+      Vec2f tex_pos(0, 0);
+      tex_pos.x = tex_coords[0].x * bc.x + tex_coords[1].x * bc.y +
+                  tex_coords[2].x * bc.z;
+      tex_pos.y = tex_coords[0].y * bc.x + tex_coords[1].y * bc.y +
+                  tex_coords[2].y * bc.z;
+      int tex_x = tex_pos.x * texture.get_width();
+      int tex_y = tex_pos.y * texture.get_height();
+      TGAColor color = texture.get(tex_x, tex_y);
+      color = TGAColor(color.r * intensity, color.g * intensity,
+                       color.b * intensity, color.a);
+
+      // depth buffer testing here.
+      pixelPos.z = screen_coords[0].z * bc.x + screen_coords[1].z * bc.y +
+                   screen_coords[2].z * bc.z;
+      if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
+        zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
+        // if only we update buffer , the "frame buffer" would be
+        // update (actually we consider the image reference as our frame buffer
+        // XD )
+        image.set(i, j, color);
+      }
+    }
+  }
+}
+
+/**
  * @brief Transform world position to screen position, keep z value
  *
  * @param v vertex transform in world coord.
@@ -236,15 +310,18 @@ int main(int argc, char **argv) {
   const RenderOptions options = parse_args(argc, argv);
 
   TGAImage image(options.width, options.height, TGAImage::RGB);
-  Model *model = new Model(options.filepath.c_str());
+  Model *model = new Model(options.objpath.c_str());
   if (model == nullptr) {
-    std::cerr << "Error: Can't load model from " << options.filepath
+    std::cerr << "Error: Can't load model from " << options.objpath
               << std::endl;
     return 1;
   }
-  float *zbuf = new float[options.width * options.height];
-  for (int i = 0; i < options.width * options.height; i++)
-    zbuf[i] = -std::numeric_limits<float>::max();
+  TGAImage texture;
+  if (!texture.read_tga_file(options.texpath.c_str())) {
+    std::cerr << "Error: Can't load texture from " << options.texpath
+              << std::endl;
+    return 1;
+  }
 
   if (options.mode == RenderingMode::LINE) {
     for (int i = 0; i < model->nfaces(); i++) {
@@ -260,6 +337,11 @@ int main(int argc, char **argv) {
       }
     }
   } else if (options.mode == RenderingMode::TRIANGLE) {
+    // allocate depth buffer.
+    float *zbuf = new float[options.width * options.height];
+    for (int i = 0; i < options.width * options.height; i++)
+      zbuf[i] = -std::numeric_limits<float>::max();
+
     Vec3f light_dir(0, 0, -1); // define light_dir
     for (int i = 0; i < model->nfaces(); i++) {
       // load data from model
@@ -283,6 +365,39 @@ int main(int argc, char **argv) {
         draw_triangle(
             screen_coords, zbuf, image,
             TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+      }
+    }
+  } else if (options.mode == RenderingMode::TEXTURED) {
+    // allocate depth buffer.
+    float *zbuf = new float[options.width * options.height];
+    for (int i = 0; i < options.width * options.height; i++)
+      zbuf[i] = -std::numeric_limits<float>::max();
+
+    Vec3f light_dir(0, 0, -1); // define light_dir
+    for (int i = 0; i < model->nfaces(); i++) {
+      // load data from model
+      std::vector<int> face = model->face(i);
+      Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
+      Vec3f world_coords[3];  // coord of 3 verts without any transform
+      Vec2f tex_coords[3];    // coord of 3 verts for texturing
+      for (int j = 0; j < 3; j++) {
+        Vec3f v = model->vert(face[j]);
+        Vec2f tv = model->texvert(face[j]);
+        world_coords[j] = v;
+        screen_coords[j] = world2screen(v, options.width, options.height);
+        tex_coords[j] = tv;
+      }
+
+      // calculate light intensity
+      Vec3f n = (world_coords[2] - world_coords[0]) ^
+                (world_coords[1] - world_coords[0]);
+      n.normalize();
+      float intensity = n * light_dir;
+
+      // render on image, texturing will be done in draw_triangle()
+      if (intensity > 0) {
+        draw_triangle(screen_coords, tex_coords, zbuf, image, texture,
+                      intensity);
       }
     }
   }

@@ -1,20 +1,19 @@
 # exclude dotfiles
 .vscode/
 .idea/
-.vs/
 
 # exclude target & builded
 *.o                     
 *.s                     
 *.i                     
+*.d
+build/
 
 tinyrenderer*
 
 # exclude benchmark files
 *.out                   
 analysis*.txt
-
-*_bench
 
 # exclude output files
 *.tga

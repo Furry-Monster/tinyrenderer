@@ -85,10 +85,10 @@ int Model::v_num() const { return (int)v_.size(); }
 int Model::vt_num() const { return (int)v_tex_.size(); }
 int Model::vn_num() const { return (int)v_norm_.size(); }
 
-int Model::face_size() const { return (int)v_indices_.size(); }
-int Model::v_ind_size() const { return (int)v_indices_.size(); }
-int Model::vt_ind_size() const { return (int)vt_indices_.size(); }
-int Model::vn_ind_size() const { return (int)vn_indices_.size(); }
+int Model::face_num() const { return (int)v_indices_.size(); }
+int Model::v_ind_num() const { return (int)v_indices_.size(); }
+int Model::vt_ind_num() const { return (int)vt_indices_.size(); }
+int Model::vn_ind_num() const { return (int)vn_indices_.size(); }
 
 Vec3f Model::getv(int ind) const { return v_[ind]; }
 Vec2f Model::getvt(int ind) const { return v_tex_[ind]; }

@@ -26,13 +26,15 @@ DEBUG_TARGET = $(TARGET)_debug
 LINEBENCH_TARGET = line_bench
 TRIANGLEBENCH_TARGET = triangle_bench
 ZBUFBENCH_TARGET = zbuf_bench
-ALL_TARGET = $(TARGET) $(DEBUG_TARGET) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET)
+MATRIXBENCH_TARGET = matrix_bench
+ALL_TARGET = $(TARGET) $(DEBUG_TARGET) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET) $(MATRIXBENCH_TARGET)
 
 # 源文件
 MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
 LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
 TRIANGLEBENCH_SRCS = trianglebench_main.cpp tgaimage.cpp
 ZBUFBENCH_SRCS = zbufbench_main.cpp tgaimage.cpp
+MATRIXBENCH_SRCS = matrixbench_main.cpp tgaimage.cpp model.cpp
 
 # 目标文件规则
 DEBUG_OBJS = $(MAIN_SRCS:%.cpp=$(DEBUG_DIR)/%.o)
@@ -44,7 +46,8 @@ RELEASE_DEPS = $(RELEASE_OBJS:.o=.d)
 LINEBENCH_OBJS = $(LINEBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
 TRIANGLEBENCH_OBJS = $(TRIANGLEBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
 ZBUFBENCH_OBJS = $(ZBUFBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
-BENCH_DEPS = $(LINEBENCH_OBJS:.o=.d) $(TRIANGLEBENCH_OBJS:.o=.d) $(ZBUFBENCH_OBJS:.o=.d)
+MATRIXBENCH_OBJS = $(MATRIXBENCH_SRCS:%.cpp=$(BENCH_DIR)/%.o)
+BENCH_DEPS = $(LINEBENCH_OBJS:.o=.d) $(TRIANGLEBENCH_OBJS:.o=.d) $(ZBUFBENCH_OBJS:.o=.d) $(MATRIXBENCH_OBJS:.o=.d)
 
 # 包含所有生成的依赖文件
 -include $(DEBUG_DEPS) $(RELEASE_DEPS) $(BENCH_DEPS)
@@ -78,8 +81,13 @@ zbufbench: CXXFLAGS += $(DEBUG_FLAGS)
 zbufbench: LDFLAGS += $(DEBUG_FLAGS_LD)
 zbufbench: $(BENCH_DIR)/$(ZBUFBENCH_TARGET)
 
+# 矩阵计算基准测试
+matrixbench: CXXFLAGS += $(DEBUG_FLAGS)
+matrixbench: LDFLAGS += $(DEBUG_FLAGS_LD)
+matrixbench: $(BENCH_DIR)/$(MATRIXBENCH_TARGET)
+
 # 编译所有基准测试
-bench: linebench trianglebench zbufbench
+bench: linebench trianglebench zbufbench matrixbench
 
 # 主程序的链接规则
 $(RELEASE_DIR)/$(TARGET): $(RELEASE_OBJS)
@@ -100,6 +108,10 @@ $(BENCH_DIR)/$(TRIANGLEBENCH_TARGET): $(TRIANGLEBENCH_OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 $(BENCH_DIR)/$(ZBUFBENCH_TARGET): $(ZBUFBENCH_OBJS)
+	@echo "Linking (Bench): $<"
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+$(BENCH_DIR)/$(MATRIXBENCH_TARGET): $(MATRIXBENCH_OBJS)
 	@echo "Linking (Bench): $<"
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 

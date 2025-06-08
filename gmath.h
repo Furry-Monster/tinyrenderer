@@ -217,7 +217,7 @@ public:
     Matrix<T, R, C> result;
     for (int i = 0; i < R; i++) {
       for (int j = 0; j < C; j++) {
-        result(i, j) = *this(i, j) + rhs(i, j);
+        result(i, j) = (*this)(i, j) + rhs(i, j);
       }
     }
     return result;
@@ -227,7 +227,7 @@ public:
     Matrix<T, R, C> result;
     for (int i = 0; i < R; i++) {
       for (int j = 0; j < C; j++) {
-        result(i, j) = *this(i, j) - rhs(i, j);
+        result(i, j) = (*this)(i, j) - rhs(i, j);
       }
     }
     return result;
@@ -240,7 +240,7 @@ public:
       for (int j = 0; j < N; j++) {
         T sum = 0;
         for (int k = 0; k < C; k++) {
-          sum += *this(i, k) * rhs(k, j);
+          sum += (*this)(i, k) * rhs(k, j);
         }
         result(i, j) = sum;
       }
@@ -251,7 +251,7 @@ public:
     Matrix<T, R, C> result;
     for (int i = 0; i < R; i++) {
       for (int j = 0; j < C; j++) {
-        result(i, j) = *this(i, j) * scalar;
+        result(i, j) = (*this)(i, j) * scalar;
       }
     }
     return result;
@@ -260,7 +260,7 @@ public:
     Matrix<T, C, R> result;
     for (int i = 0; i < R; i++) {
       for (int j = 0; j < C; j++) {
-        result(j, i) = *this(i, j);
+        result(j, i) = (*this)(i, j);
       }
     }
     return result;
@@ -274,7 +274,7 @@ public:
     Matrix<T, R, 2 * R> aug;
     for (int i = 0; i < R; i++) {
       for (int j = 0; j < R; j++) {
-        aug(i, j) = *this(i, j);
+        aug(i, j) = (*this)(i, j);
       }
       aug(i, i + R) = 1;
     }
@@ -325,6 +325,7 @@ public:
     }
     return true;
   };
+
   constexpr bool isSymmetric(T epsilon = 1e-6) const noexcept {
     static_assert(R == C, "Symmetry check only valid for square matrices!");
 
@@ -338,6 +339,11 @@ public:
     return true;
   };
 
+  /**
+   * @brief generate an identity matrix ,for example:[1,0,0][0,1,0][0,0,1]
+   *
+   * @return constexpr Matrix<T, R, R> constructed martix
+   */
   constexpr static Matrix<T, R, R> identity() noexcept {
     static_assert(R == C, "Identity matrix must be square!");
 
@@ -347,10 +353,35 @@ public:
     return result;
   }
 
+  /**
+   * @brief generate a diagonal matrix, each value set to (T value)
+   *
+   * @param value value of each element
+   * @return constexpr Matrix<T, R, R>
+   */
+  constexpr static Matrix<T, R, R> diagonal(T value) noexcept {
+    static_assert(R == C, "Diagonal matrix must be square!");
+    Matrix<T, R, R> result;
+    for (int i = 0; i < R; i++) {
+      result(i, i) = value;
+    }
+    return result;
+  }
+
+  /**
+   * @brief generate an all zero matrix
+   *
+   * @return constexpr Matrix<T, R, C>
+   */
   constexpr static Matrix<T, R, C> zeros() noexcept {
     return Matrix<T, R, C>();
   }
 
+  /**
+   * @brief  generate an all one matrix
+   *
+   * @return constexpr Matrix<T, R, C>
+   */
   constexpr static Matrix<T, R, C> ones() noexcept {
     Matrix<T, R, C> result;
     for (int i = 0; i < R; i++)
@@ -359,6 +390,14 @@ public:
     return result;
   }
 
+  /**
+   * @brief Print the matrix in formatted style
+   *
+   * @tparam U
+   * @param s
+   * @param mat
+   * @return std::ostream&
+   */
   template <typename U>
   friend std::ostream &operator<<(std::ostream &s, const Matrix<T, R, C> &mat) {
     for (int i = 0; i < R; i++) {

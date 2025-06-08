@@ -27,10 +27,10 @@ public:
   int vt_num() const;
   int vn_num() const;
 
-  int face_size() const;
-  int v_ind_size() const;
-  int vt_ind_size() const;
-  int vn_ind_size() const;
+  int face_num() const;
+  int v_ind_num() const;
+  int vt_ind_num() const;
+  int vn_ind_num() const;
 
   // index find
   Vec3f getv(int ind) const;

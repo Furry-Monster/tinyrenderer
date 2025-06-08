@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
   texture.flip_vertically();
 
   if (options.mode == RenderingMode::LINE) {
-    for (int i = 0; i < model->v_ind_size(); i++) {
+    for (int i = 0; i < model->v_ind_num(); i++) {
       std::vector<int> face = model->getv_ind(i);
       for (int j = 0; j < 3; j++) {
         Vec3f v0 = model->getv(face[j]);
@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
       zbuf[i] = -std::numeric_limits<float>::max();
 
     Vec3f light_dir(0, 0, -1); // define light_dir
-    for (int i = 0; i < model->v_ind_size(); i++) {
+    for (int i = 0; i < model->v_ind_num(); i++) {
       // load data from model
       std::vector<int> face = model->getv_ind(i);
       Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
     Vec3f light_dir(0, 0, -1); // define light_dir
 
     // render each face/piece
-    for (int i = 0; i < model->face_size(); i++) {
+    for (int i = 0; i < model->face_num(); i++) {
       // load data from model
       std::vector<int> v_ind_tuple = model->getv_ind(i);
       std::vector<int> vt_ind_tuple = model->getvt_ind(i);

@@ -389,6 +389,7 @@ int main(int argc, char **argv) {
             TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
       }
     }
+    delete[] zbuf;
   } else if (options.mode == RenderingMode::ZBUF) {
     // allocate depth buffer.
     float *zbuf = new float[options.width * options.height];
@@ -429,6 +430,7 @@ int main(int argc, char **argv) {
     zbufimage.flip_vertically();
     zbufimage.write_tga_file(options.outputpath.c_str());
     delete model;
+    delete[] zbuf;
     return 0;
 
   } else if (options.mode == RenderingMode::TEXTURING) {
@@ -481,6 +483,7 @@ int main(int argc, char **argv) {
                       intensity);
       }
     }
+    delete[] zbuf;
   } else if (options.mode == RenderingMode::SHADING) {
     std::cout << "Not implemented yet" << std::endl;
     delete model;

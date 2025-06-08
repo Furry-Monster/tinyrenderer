@@ -24,7 +24,9 @@ struct RenderOptions {
   RenderingMode mode = RenderingMode::LINE;
 
   std::string objpath = "obj/african_head.obj";
-  std::string texpath = "texture/african_head_diffuse.tga";
+  std::string diffusepath = "texture/african_head_diffuse.tga";
+  std::string normalpath = "texture/african_head_nm.tga";
+  std::string specularpath = "texture/african_head_spec.tga";
   std::string outputpath = "output.tga";
 
   int width = 800;
@@ -322,20 +324,19 @@ int main(int argc, char **argv) {
   const RenderOptions options = parse_args(argc, argv);
 
   TGAImage image(options.width, options.height, TGAImage::RGB);
+
+  // load model and textures from files
   Model *model = new Model(options.objpath.c_str());
   if (model == nullptr) {
     std::cerr << "Error: Can't load model from " << options.objpath
               << std::endl;
     return 1;
   }
-  TGAImage texture;
-  if (!texture.read_tga_file(options.texpath.c_str())) {
-    std::cerr << "Error: Can't load texture from " << options.texpath
-              << std::endl;
-    return 1;
-  }
-  texture.flip_vertically();
+  model->load_texture(options.diffusepath, Model::DIFFUSE);
+  model->load_texture(options.normalpath, Model::NORMAL);
+  model->load_texture(options.specularpath, Model::SPECULAR);
 
+  // render on tga image in different rendering mode
   if (options.mode == RenderingMode::LINE) {
     for (int i = 0; i < model->v_ind_num(); i++) {
       std::vector<int> face = model->getv_ind(i);
@@ -479,8 +480,8 @@ int main(int argc, char **argv) {
 
       // render on image, texturing will be done in draw_triangle()
       if (intensity > 0) {
-        draw_triangle(screen_coords, tex_coords, zbuf, image, texture,
-                      intensity);
+        draw_triangle(screen_coords, tex_coords, zbuf, image,
+                      model->gettexture(Model::DIFFUSE), intensity);
       }
     }
     delete[] zbuf;

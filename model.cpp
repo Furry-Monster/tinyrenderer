@@ -1,5 +1,6 @@
 #include "model.h"
 #include "gmath.h"
+#include "tgaimage.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -106,3 +107,29 @@ std::vector<std::vector<int>> Model::getface(int ind) const {
 std::vector<int> Model::getv_ind(int ind) const { return v_indices_[ind]; }
 std::vector<int> Model::getvt_ind(int ind) const { return vt_indices_[ind]; }
 std::vector<int> Model::getvn_ind(int ind) const { return vn_indices_[ind]; }
+
+void Model::load_texture(std::string filepath, MapType map) {
+  TGAImage texture;
+  if (!texture.read_tga_file(filepath.c_str())) {
+    std::cerr << "Error: Can't load texture from " << filepath << std::endl;
+    return;
+  }
+  texture.flip_vertically();
+
+  if (map == MapType::DIFFUSE)
+    diffusemap_ = texture;
+  else if (map == MapType::NORMAL)
+    normalmap_ = texture;
+  else if (map == MapType::SPECULAR)
+    specularmap_ = texture;
+}
+
+const TGAImage Model::gettexture(MapType map) const noexcept {
+  if (map == MapType::DIFFUSE)
+    return diffusemap_;
+  else if (map == MapType::NORMAL)
+    return normalmap_;
+  else if (map == MapType::SPECULAR)
+    return specularmap_;
+  return TGAImage();
+}

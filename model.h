@@ -2,6 +2,9 @@
 #define __MODEL_H__
 
 #include "gmath.h"
+#include "tgaimage.h"
+#include <iostream>
+#include <string>
 #include <vector>
 
 // Only support .obj format Models
@@ -17,7 +20,18 @@ private:
   std::vector<std::vector<int>> vt_indices_; // texture vertex indices
   std::vector<std::vector<int>> vn_indices_; // normal vertex indices
 
+  // texture properties
+  TGAImage diffusemap_;
+  TGAImage normalmap_;
+  TGAImage specularmap_;
+
 public:
+  enum MapType {
+    DIFFUSE,
+    NORMAL,
+    SPECULAR,
+  };
+
   // constructors
   Model(const char *filename);
   ~Model();
@@ -32,7 +46,7 @@ public:
   int vt_ind_num() const;
   int vn_ind_num() const;
 
-  // index find
+  // getters
   Vec3f getv(int ind) const;
   Vec2f getvt(int ind) const;
   Vec3f getvn(int ind) const;
@@ -41,6 +55,10 @@ public:
   std::vector<int> getv_ind(int ind) const;
   std::vector<int> getvt_ind(int ind) const;
   std::vector<int> getvn_ind(int ind) const;
+
+  // texture methods
+  void load_texture(std::string filepath, MapType map);
+  const TGAImage gettexture(MapType map) const noexcept;
 };
 
 #endif

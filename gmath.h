@@ -413,8 +413,20 @@ public:
   }
 };
 
+template <typename T> using Mat4 = Matrix<T, 4, 4>;
+template <typename T> using Mat3 = Matrix<T, 3, 3>;
+template <typename T> using Mat2 = Matrix<T, 2, 2>;
+
 typedef Matrix<float, 4, 4> Mat4f;
 typedef Matrix<float, 3, 3> Mat3f;
 typedef Matrix<float, 2, 2> Mat2f;
+
+typedef Matrix<double, 4, 4> Mat4d;
+typedef Matrix<double, 3, 3> Mat3d;
+typedef Matrix<double, 2, 2> Mat2d;
+
+typedef Matrix<int, 4, 4> Mat4i;
+typedef Matrix<int, 3, 3> Mat3i;
+typedef Matrix<int, 2, 2> Mat2i;
 
 #endif // __GMATH_H__

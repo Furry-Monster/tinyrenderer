@@ -1,6 +1,7 @@
 #include "gmath.h"
 #include "model.h"
 #include "tgaimage.h"
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <vector>
@@ -59,7 +60,7 @@ constexpr Matrix<T, 4, 1> v2m(const Vec3<T> vec) noexcept {
 
 template <typename T>
 constexpr Matrix<T, 4, 4> viewport_trans(int x, int y, int w, int h) noexcept {
-  Matrix<T, 4, 4> m = Mat4f::identity();
+  Matrix<T, 4, 4> m = Mat4<T>::identity();
   m[0][3] = x + w / 2.0f;
   m[1][3] = y + h / 2.0f;
   m[2][3] = depth / 2.0f;
@@ -72,8 +73,50 @@ constexpr Matrix<T, 4, 4> viewport_trans(int x, int y, int w, int h) noexcept {
 
 template <typename T>
 constexpr Matrix<T, 4, 4> scale_trans(float value) noexcept {
-  Matrix<T, 4, 4> m = Matrix<T, 4, 4>::identity();
+  Matrix<T, 4, 4> m = Mat4<T>::identity();
   m[0][0] = m[1][1] = m[2][2] = value;
+  return m;
+}
+
+template <typename T>
+constexpr Matrix<T, 4, 4> translation_trans(Vec3f v) noexcept {
+  // maybe also called affine transformation?
+  Matrix<T, 4, 4> m = Mat4<T>::identity();
+  m[0][3] = v.x;
+  m[1][3] = v.y;
+  m[2][3] = v.z;
+}
+
+template <typename T>
+constexpr Matrix<T, 4, 4> x_rotate_trans(float angle_in_rad) noexcept {
+  Mat4<T> m = Mat4<T>::identity();
+  float cosangle = cos(angle_in_rad);
+  float sinangle = sin(angle_in_rad);
+  m[1][1] = m[2][2] = cosangle;
+  m[1][2] = -sinangle;
+  m[2][1] = sinangle;
+  return m;
+}
+
+template <typename T>
+constexpr Matrix<T, 4, 4> y_rotate_trans(float angle_in_rad) noexcept {
+  Mat4<T> m = Mat4<T>::identity();
+  float cosangle = cos(angle_in_rad);
+  float sinangle = sin(angle_in_rad);
+  m[0][0] = m[2][2] = cosangle;
+  m[0][2] = -sinangle;
+  m[2][0] = sinangle;
+  return m;
+}
+
+template <typename T>
+constexpr Matrix<T, 4, 4> z_rotate_trans(float angle_in_rad) noexcept {
+  Mat4<T> m = Mat4<T>::identity();
+  float cosangle = cos(angle_in_rad);
+  float sinangle = sin(angle_in_rad);
+  m[0][0] = m[1][1] = cosangle;
+  m[0][1] = -sinangle;
+  m[1][0] = sinangle;
   return m;
 }
 

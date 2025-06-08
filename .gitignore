@@ -6,6 +6,6 @@
 build/
 
 # exclude other files
-*.out                   
+*.out
 analysis*.txt
 /*.tga 

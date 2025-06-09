@@ -58,7 +58,7 @@ public:
 
   // texture methods
   void load_texture(std::string filepath, MapType map);
-  const TGAImage gettexture(MapType map) const noexcept;
+  const TGAColor uv(Vec2f uv, MapType map) const noexcept;
 };
 
 #endif

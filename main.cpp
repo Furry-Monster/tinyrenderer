@@ -257,8 +257,7 @@ void draw_triangle(Vec3f *pts, float *zbuf, TGAImage &image,
  * @param intensity light intensity, so simple :-(
  */
 void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
-                   TGAImage &image, const TGAImage &texture,
-                   float intensity) noexcept {
+                   TGAImage &image, Model &model, float intensity) noexcept {
   int xmax = -1, ymax = -1;
   int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
   Vec2i screen_2i[3];
@@ -298,9 +297,7 @@ void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
         tex_pos.x += tex_coords[k].x * bc_screen[k];
         tex_pos.y += tex_coords[k].y * bc_screen[k];
       }
-      int tex_x = tex_pos.x * texture.get_width();
-      int tex_y = tex_pos.y * texture.get_height();
-      TGAColor color = texture.get(tex_x, tex_y);
+      TGAColor color = model.uv(tex_pos, Model::DIFFUSE);
 
       // an easy lighting,well, it's not enough for me...
       color = TGAColor(color.r * intensity, color.g * intensity,
@@ -359,6 +356,7 @@ int main(int argc, char **argv) {
     Vec3f light_dir(0, 0, -1); // define light_dir
     Vec3f camera(0, 0, 3);     // define camera position;
 
+    // this is too simple, using MVP later...
     Mat4f projection = Mat4f::identity();
     projection[3][2] = -1.0f / camera.z;
     Mat4f viewport = viewport_trans(
@@ -480,8 +478,8 @@ int main(int argc, char **argv) {
 
       // render on image, texturing will be done in draw_triangle()
       if (intensity > 0) {
-        draw_triangle(screen_coords, tex_coords, zbuf, image,
-                      model->gettexture(Model::DIFFUSE), intensity);
+        draw_triangle(screen_coords, tex_coords, zbuf, image, *model,
+                      intensity);
       }
     }
     delete[] zbuf;

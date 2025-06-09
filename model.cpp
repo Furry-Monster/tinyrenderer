@@ -77,6 +77,10 @@ Model::~Model() {
   v_indices_.clear();
   vt_indices_.clear();
   vn_indices_.clear();
+
+  diffusemap_.clear();
+  normalmap_.clear();
+  specularmap_.clear();
 #ifdef DEBUG
   std::cerr << "Model destroyed" << std::endl;
 #endif
@@ -124,12 +128,20 @@ void Model::load_texture(std::string filepath, MapType map) {
     specularmap_ = texture;
 }
 
-const TGAImage Model::gettexture(MapType map) const noexcept {
+const TGAColor Model::uv(Vec2f uv, MapType map) const noexcept {
+  TGAImage texture;
+  TGAColor color;
+
   if (map == MapType::DIFFUSE)
-    return diffusemap_;
+    texture = diffusemap_;
   else if (map == MapType::NORMAL)
-    return normalmap_;
+    texture = normalmap_;
   else if (map == MapType::SPECULAR)
-    return specularmap_;
-  return TGAImage();
+    texture = specularmap_;
+
+  int tex_x = uv.u * texture.get_width();
+  int tex_y = uv.v * texture.get_height();
+
+  color = texture.get(tex_x, tex_y);
+  return color;
 }

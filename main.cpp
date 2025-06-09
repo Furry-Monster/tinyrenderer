@@ -1,4 +1,3 @@
-#include "gmath.h"
 #include "model.h"
 #include "renderer.h"
 #include "tgaimage.h"
@@ -48,9 +47,12 @@ const RenderOptions parse_args(int argc, char **argv) {
         } else if (mode == "zbuf") {
           options.mode = RenderingMode::ZBUF;
         } else if (mode == "textured") {
-          options.mode = RenderingMode::TEXTURED;
+          options.mode = RenderingMode::TRIANGLE;
+          options.shadingmode = ShadingType::DIFFUSE;
         } else if (mode == "shading") {
-          options.mode = RenderingMode::SHADING;
+          options.mode = RenderingMode::TRIANGLE;
+          options.shadingmode = ShadingType::DIFFUSE | ShadingType::NORMAL |
+                                ShadingType::SPECULAR;
         } else {
           std::cerr << "Error: Invalid rendering mode " << mode << std::endl;
           exit(1);
@@ -79,131 +81,6 @@ const RenderOptions parse_args(int argc, char **argv) {
   return options;
 }
 
-/**
- * @brief Triangle drawing function from trianglebench_main.cpp:draw_triangle4()
- *
- * @param pts point set
- * @param zbuf zbuffer reference for depth testing
- * @param image image to draw
- * @param color color for image (without interpolate)
- */
-void draw_triangle(Vec3f *pts, float *zbuf, TGAImage &image,
-                   TGAColor color) noexcept {
-  int xmax = -1, ymax = -1;
-  int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
-  Vec2i pts_i[3];
-
-  for (int i = 0; i < 3; i++) {
-    Vec2i cur = Vec2i(pts[i]);
-    pts_i[i] = cur;
-
-    if (cur.x < xmin)
-      xmin = cur.x;
-    if (cur.x > xmax)
-      xmax = cur.x;
-    if (cur.y < ymin)
-      ymin = cur.y;
-    if (cur.y > ymax)
-      ymax = cur.y;
-  }
-
-  Vec3f pixelPos, bc;
-  for (int i = xmin; i < xmax; i++) {
-    for (int j = ymin; j < ymax; j++) {
-      pixelPos.x = i;
-      pixelPos.y = j;
-      pixelPos.z = 0.0f;
-      bc = barycentric2d(pts_i, pixelPos.toVec2());
-      // Do barycentric test then.
-      // If barycentric have any negative value,
-      // the pixelPos would be regard to be outlined,
-      // although it's inside bounding box
-      if (bc.x < 0 || bc.y < 0 || bc.z < 0)
-        continue;
-      // depth buffer testing here.
-      pixelPos.z = pts[0].z * bc.x + pts[1].z * bc.y + pts[2].z * bc.z;
-      if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
-        zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
-        // if only we update buffer , the "frame buffer" would be
-        // update (actually we consider the image reference as our frame buffer
-        // XD )
-        image.set(i, j, color);
-      }
-    }
-  }
-}
-
-/**
- * @brief Drawing triangle piece and texturing
- *
- * @param screen_coords screen coords for locating pieces
- * @param tex_coords texture coords for locating texture
- * @param zbuf zbuffer reference for depth testing
- * @param image image to draw
- * @param texture textrue image reference
- * @param intensity light intensity, so simple :-(
- */
-void draw_triangle(Vec3f *screen_coords, Vec2f *tex_coords, float *zbuf,
-                   TGAImage &image, Model &model, float intensity) noexcept {
-  int xmax = -1, ymax = -1;
-  int xmin = 8000, ymin = 8000; // i dont think somebody would use 8k screen...
-  Vec2i screen_2i[3];
-
-  for (int i = 0; i < 3; i++) {
-    Vec2i cur_sc = Vec2i(screen_coords[i]);
-    screen_2i[i] = cur_sc;
-
-    if (cur_sc.x < xmin)
-      xmin = cur_sc.x;
-    if (cur_sc.x > xmax)
-      xmax = cur_sc.x;
-    if (cur_sc.y < ymin)
-      ymin = cur_sc.y;
-    if (cur_sc.y > ymax)
-      ymax = cur_sc.y;
-  }
-
-  Vec3f pixelPos, bc_screen;
-  for (int i = xmin; i < xmax; i++) {
-    for (int j = ymin; j < ymax; j++) {
-      pixelPos.x = i;
-      pixelPos.y = j;
-      pixelPos.z = 0.0f;
-
-      bc_screen = barycentric2d(screen_2i, pixelPos.toVec2());
-      // Do barycentric test then.
-      // If barycentric have any negative value,
-      // the pixelPos would be regard to be outlined,
-      // although it's inside bounding box
-      if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)
-        continue;
-
-      // barycentric interpolate texturing
-      Vec2f tex_pos(0, 0);
-      for (int k = 0; k < 3; k++) {
-        tex_pos.x += tex_coords[k].x * bc_screen[k];
-        tex_pos.y += tex_coords[k].y * bc_screen[k];
-      }
-      TGAColor color = model.uv(tex_pos, Model::DIFFUSE);
-
-      // an easy lighting,well, it's not enough for me...
-      color = TGAColor(color.r * intensity, color.g * intensity,
-                       color.b * intensity, color.a);
-
-      // depth buffer testing here.
-      for (int k = 0; k < 3; k++)
-        pixelPos.z += screen_coords[k].z * bc_screen[k];
-      if (zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] < pixelPos.z) {
-        zbuf[int(pixelPos.x + pixelPos.y * image.get_width())] = pixelPos.z;
-        // if only we update buffer , the "frame buffer" would be
-        // update (actually we consider the image reference as our frame buffer
-        // XD )
-        image.set(i, j, color);
-      }
-    }
-  }
-}
-
 int main(int argc, char **argv) {
   // initialize the renderer
   RenderOptions options = parse_args(argc, argv);
@@ -217,9 +94,13 @@ int main(int argc, char **argv) {
               << std::endl;
     return 1;
   }
-  model->load_texture(options.diffusepath, Model::DIFFUSE);
-  model->load_texture(options.normalpath, Model::NORMAL);
-  model->load_texture(options.specularpath, Model::SPECULAR);
+  TGAImage diffusemap, normalmap, specularmap;
+  if (diffusemap.read_tga_file(options.diffusepath.c_str()))
+    renderer.set_texture(diffusemap, DIFFUSE);
+  if (normalmap.read_tga_file(options.normalpath.c_str()))
+    renderer.set_texture(normalmap, NORMAL);
+  if (specularmap.read_tga_file(options.specularpath.c_str()))
+    renderer.set_texture(specularmap, SPECULAR);
 
   renderer.set_model(model);
   renderer.render();

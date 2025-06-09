@@ -15,8 +15,18 @@ Renderer::Renderer(TGAImage &image, RenderOptions &options,
 }
 
 Renderer::~Renderer() noexcept {
+  // clear rendered image
   image_.clear();
+
+  // clear textures
+  diffusemap_.clear();
+  normalmap_.clear();
+  specularmap_.clear();
+
+  // release buffer
   zbuffer_.release();
+
+  // clear model
   delete model_;
   model_ = nullptr;
 }
@@ -30,6 +40,20 @@ void Renderer::set_model(Model *model) noexcept {
   // here clear model_ ptr
   delete model_;
   model_ = model;
+}
+void Renderer::set_texture(TGAImage &texture, ShadingType type) noexcept {
+  texture.flip_vertically();
+
+  if (type == ShadingType::DIFFUSE) {
+    diffusemap_.clear();
+    diffusemap_ = texture;
+  } else if (type == ShadingType::NORMAL) {
+    normalmap_.clear();
+    normalmap_ = texture;
+  } else if (type == ShadingType::SPECULAR) {
+    specularmap_.clear();
+    specularmap_ = texture;
+  }
 }
 void Renderer::set_options(RenderOptions &options) noexcept {
   options_ = options;
@@ -71,45 +95,11 @@ void Renderer::render_wireframe() noexcept {
     cached_line.draw(image_, zbuffer_.get());
   }
 }
-void Renderer::render_triangle() noexcept {
-  Vec3f light_dir(0, 0, -1); // define light_dir
-  Vec3f camera(0, 0, 3);     // define camera position;
 
-  // this is too simple, using MVP later...
-  Mat4f projection = Mat4f::identity();
-  projection[3][2] = -1.0f / camera.z;
-  Mat4f viewport = viewport_trans(
-      options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
-      options_.height * 3 / 4, options_.depth);
-
-  // render each piece/triangles
-  for (int i = 0; i < model_->v_ind_num(); i++) {
-    // load data from model
-    std::vector<int> face = model_->getv_ind(i);
-    Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
-    Vec3f world_coords[3];  // coord of 3 verts without any transform
-    for (int j = 0; j < 3; j++) {
-      Vec3f v = model_->getv(face[j]);
-      world_coords[j] = v;
-      screen_coords[j] = m2v(viewport * projection * v2m(v));
-    }
-
-    // calculate light intensity
-    Vec3f n = (world_coords[2] - world_coords[0]) ^
-              (world_coords[1] - world_coords[0]);
-    n.normalize();
-    float intensity = n * light_dir;
-
-    // render on image, triangle as piece
-    if (intensity > 0) {
-      draw_triangle(
-          screen_coords, zbuffer_.get(), image_,
-          TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
-    }
-  }
-}
 void Renderer::render_zbufgray() noexcept {
   Vec3f camera(0, 0, 3); // define camera position;
+  Triangle cached_triangle(options_.shadingmode);
+
   TGAImage zbufimage(options_.width, options_.height, TGAImage::GRAYSCALE);
 
   Mat4f projection = Mat4f::identity();
@@ -127,9 +117,10 @@ void Renderer::render_zbufgray() noexcept {
       Vec3f v = model_->getv(face[j]);
       screen_coords[j] = m2v(viewport * projection * v2m(v));
     }
+    cached_triangle.set_rverts(screen_coords);
 
     // render on image, triangle as piece
-    draw_triangle(screen_coords, zbuffer_.get(), image_, white);
+    cached_triangle.draw(image_, zbuffer_.get());
   }
 
   // render finally z buffer preview image
@@ -143,9 +134,11 @@ void Renderer::render_zbufgray() noexcept {
   image_.clear();
   image_ = zbufimage;
 }
-void Renderer::render_textured() noexcept {
+
+void Renderer::render_triangle() noexcept {
   Vec3f light_dir(0, 0, -1); // define light_dir
   Vec3f camera(0, 0, 3);     // define camera position;
+  Triangle cached_triangle(options_.shadingmode);
 
   Mat4f projection = Mat4f::identity();
   projection[3][2] = -1.0f / camera.z;
@@ -176,7 +169,12 @@ void Renderer::render_textured() noexcept {
       norm_coords[j] = vn;
     }
 
-    // calculate light intensity
+    cached_triangle.set_verts(world_coords);
+    cached_triangle.set_rverts(screen_coords);
+    cached_triangle.set_uvs(tex_coords);
+    cached_triangle.set_normals(norm_coords);
+
+    // calculate light intensity...
     Vec3f n = (world_coords[2] - world_coords[0]) ^
               (world_coords[1] - world_coords[0]);
     n.normalize();
@@ -184,8 +182,7 @@ void Renderer::render_textured() noexcept {
 
     // render on image, texturing will be done in draw_triangle()
     if (intensity > 0) {
-      draw_triangle(screen_coords, tex_coords, zbuffer_, image_, *model_,
-                    intensity);
+      cached_triangle.draw(image_, zbuffer_.get(), diffusemap_, intensity);
     }
   }
 }
@@ -201,12 +198,6 @@ void Renderer::render() noexcept {
     break;
   case ZBUF:
     render_zbufgray();
-    break;
-  case TEXTURED:
-    render_textured();
-    break;
-  case SHADING:
-    std::cout << "Not implemented yet" << std::endl;
     break;
   }
 

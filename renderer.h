@@ -5,16 +5,21 @@
 #include "tgaimage.h"
 #include <memory>
 
+enum ShadingType {
+  DIFFUSE = 0x1,
+  NORMAL = 0x10,
+  SPECULAR = 0x100,
+};
+
 enum RenderingMode {
   LINE,
   TRIANGLE,
   ZBUF,
-  TEXTURED,
-  SHADING,
 };
 
 struct RenderOptions {
-  RenderingMode mode = RenderingMode::TEXTURED;
+  RenderingMode mode = RenderingMode::TRIANGLE;
+  unsigned int shadingmode = 0;
 
   std::string objpath = "obj/african_head.obj";
   std::string diffusepath = "texture/african_head_diffuse.tga";
@@ -34,6 +39,9 @@ class Renderer {
 private:
   TGAImage &image_;
   Model *model_;
+  TGAImage diffusemap_;
+  TGAImage normalmap_;
+  TGAImage specularmap_;
   RenderOptions &options_;
 
   std::unique_ptr<float[]> zbuffer_;
@@ -48,6 +56,7 @@ public:
   // getter/setter
   void set_image(TGAImage &image) noexcept;
   void set_model(Model *model) noexcept;
+  void set_texture(TGAImage &texture, ShadingType type) noexcept;
   void set_options(RenderOptions &options) noexcept;
 
   // functions
@@ -58,7 +67,6 @@ private:
   void render_wireframe() noexcept;
   void render_triangle() noexcept;
   void render_zbufgray() noexcept;
-  void render_textured() noexcept;
 };
 
 #endif // __RENDERER_H__

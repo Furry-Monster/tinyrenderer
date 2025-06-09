@@ -1,6 +1,5 @@
 #include "model.h"
 #include "gmath.h"
-#include "tgaimage.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -77,10 +76,6 @@ Model::~Model() {
   v_indices_.clear();
   vt_indices_.clear();
   vn_indices_.clear();
-
-  diffusemap_.clear();
-  normalmap_.clear();
-  specularmap_.clear();
 #ifdef DEBUG
   std::cerr << "Model destroyed" << std::endl;
 #endif
@@ -111,37 +106,3 @@ std::vector<std::vector<int>> Model::getface(int ind) const {
 std::vector<int> Model::getv_ind(int ind) const { return v_indices_[ind]; }
 std::vector<int> Model::getvt_ind(int ind) const { return vt_indices_[ind]; }
 std::vector<int> Model::getvn_ind(int ind) const { return vn_indices_[ind]; }
-
-void Model::load_texture(std::string filepath, MapType map) {
-  TGAImage texture;
-  if (!texture.read_tga_file(filepath.c_str())) {
-    std::cerr << "Error: Can't load texture from " << filepath << std::endl;
-    return;
-  }
-  texture.flip_vertically();
-
-  if (map == MapType::DIFFUSE)
-    diffusemap_ = texture;
-  else if (map == MapType::NORMAL)
-    normalmap_ = texture;
-  else if (map == MapType::SPECULAR)
-    specularmap_ = texture;
-}
-
-const TGAColor Model::uv(Vec2f uv, MapType map) const noexcept {
-  TGAImage texture;
-  TGAColor color;
-
-  if (map == MapType::DIFFUSE)
-    texture = diffusemap_;
-  else if (map == MapType::NORMAL)
-    texture = normalmap_;
-  else if (map == MapType::SPECULAR)
-    texture = specularmap_;
-
-  int tex_x = uv.u * texture.get_width();
-  int tex_y = uv.v * texture.get_height();
-
-  color = texture.get(tex_x, tex_y);
-  return color;
-}

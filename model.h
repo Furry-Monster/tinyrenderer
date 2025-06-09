@@ -20,18 +20,7 @@ private:
   std::vector<std::vector<int>> vt_indices_; // texture vertex indices
   std::vector<std::vector<int>> vn_indices_; // normal vertex indices
 
-  // texture properties
-  TGAImage diffusemap_;
-  TGAImage normalmap_;
-  TGAImage specularmap_;
-
 public:
-  enum MapType {
-    DIFFUSE,
-    NORMAL,
-    SPECULAR,
-  };
-
   // constructors
   Model(const char *filename);
   ~Model();
@@ -55,10 +44,6 @@ public:
   std::vector<int> getv_ind(int ind) const;
   std::vector<int> getvt_ind(int ind) const;
   std::vector<int> getvn_ind(int ind) const;
-
-  // texture methods
-  void load_texture(std::string filepath, MapType map);
-  const TGAColor uv(Vec2f uv, MapType map) const noexcept;
 };
 
 #endif

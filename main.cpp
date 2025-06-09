@@ -6,11 +6,18 @@
 #include <iostream>
 #include <string>
 
+std::string obj_path = "obj/african_head.obj";
+std::string diffuse_path = "texture/african_head_diffuse.tga";
+std::string normal_path = "texture/african_head_nm.tga";
+std::string specular_path = "texture/african_head_spec.tga";
+std::string output_path = "output.tga";
+
 void print_usage() {
   std::cout
       << "Usage: tinyrenderer [Options] <filepath>\n"
       << "Options:\n"
-      << "  -m, --mode     RenderMode (line/triangle/zbuf/textured/shading, "
+      << "  -m, --mode     RenderMode "
+         "(wireframe/zbuf/triangle/textured/shading, "
          "默认: line)\n"
       << "  -w, --width    Width for output image (默认: 800)\n"
       << "  -h, --height   Height for output image (默认: 800)\n"
@@ -40,12 +47,12 @@ const RenderOptions parse_args(int argc, char **argv) {
     } else if (arg == "-m" || arg == "--mode") {
       if (i + 1 < argc) {
         std::string mode = argv[++i];
-        if (mode == "line") {
-          options.mode = RenderingMode::LINE;
+        if (mode == "wireframe") {
+          options.mode = RenderingMode::WIREFRAME;
+        } else if (mode == "zbuf") {
+          options.mode = RenderingMode::ZBUFGRAY;
         } else if (mode == "triangle") {
           options.mode = RenderingMode::TRIANGLE;
-        } else if (mode == "zbuf") {
-          options.mode = RenderingMode::ZBUF;
         } else if (mode == "textured") {
           options.mode = RenderingMode::TRIANGLE;
           options.shadingmode = ShadingType::DIFFUSE;
@@ -72,10 +79,10 @@ const RenderOptions parse_args(int argc, char **argv) {
       }
     } else if (arg == "-o" || arg == "--output") {
       if (i + 1 < argc) {
-        options.outputpath = argv[++i];
+        output_path = argv[++i];
       }
     } else if (arg[0] != '-') {
-      options.objpath = arg;
+      obj_path = arg;
     }
   }
   return options;
@@ -87,25 +94,26 @@ int main(int argc, char **argv) {
   TGAImage image(options.width, options.height, TGAImage::RGB);
   Renderer renderer(image, options);
 
-  // load model and textures from files
-  Model *model = new Model(options.objpath.c_str());
+  // load model from files
+  Model *model = new Model(obj_path.c_str());
   if (model == nullptr) {
-    std::cerr << "Error: Can't load model from " << options.objpath
-              << std::endl;
+    std::cerr << "Error: Can't load model from " << obj_path << std::endl;
     return 1;
   }
+  renderer.set_model(model);
+
+  // load texture maps from files
   TGAImage diffusemap, normalmap, specularmap;
-  if (diffusemap.read_tga_file(options.diffusepath.c_str()))
+  if (diffusemap.read_tga_file(diffuse_path.c_str()))
     renderer.set_texture(diffusemap, DIFFUSE);
-  if (normalmap.read_tga_file(options.normalpath.c_str()))
+  if (normalmap.read_tga_file(normal_path.c_str()))
     renderer.set_texture(normalmap, NORMAL);
-  if (specularmap.read_tga_file(options.specularpath.c_str()))
+  if (specularmap.read_tga_file(specular_path.c_str()))
     renderer.set_texture(specularmap, SPECULAR);
 
-  renderer.set_model(model);
   renderer.render();
 
-  renderer.save_output();
+  renderer.save_image(output_path);
   renderer.set_model(nullptr);
 
   return 0;

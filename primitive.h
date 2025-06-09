@@ -233,6 +233,10 @@ public:
           int sample_y = tex_pos.v * diffuse.get_height();
 
           color = diffuse.get(sample_x, sample_y);
+        } else {
+          // use no texture maps...
+          // we just use white/gray to render it.
+          color = white;
         }
 
         // an easy lighting,well, it's not enough for me...

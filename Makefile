@@ -30,7 +30,7 @@ MATRIXBENCH_TARGET = matrix_bench
 ALL_TARGET = $(TARGET) $(DEBUG_TARGET) $(LINEBENCH_TARGET) $(TRIANGLEBENCH_TARGET) $(ZBUFBENCH_TARGET) $(MATRIXBENCH_TARGET)
 
 # 源文件
-MAIN_SRCS = main.cpp tgaimage.cpp model.cpp
+MAIN_SRCS = main.cpp tgaimage.cpp model.cpp renderer.cpp
 LINEBENCH_SRCS = linebench_main.cpp tgaimage.cpp
 TRIANGLEBENCH_SRCS = trianglebench_main.cpp tgaimage.cpp
 ZBUFBENCH_SRCS = zbufbench_main.cpp tgaimage.cpp

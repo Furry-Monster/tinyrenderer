@@ -189,15 +189,16 @@ void Renderer::render_triangle() noexcept {
 
 void Renderer::render() noexcept {
   image_.clear();
+
   switch (options_.mode) {
-  case LINE:
+  case WIREFRAME:
     render_wireframe();
+    break;
+  case ZBUFGRAY:
+    render_zbufgray();
     break;
   case TRIANGLE:
     render_triangle();
-    break;
-  case ZBUF:
-    render_zbufgray();
     break;
   }
 
@@ -206,6 +207,6 @@ void Renderer::render() noexcept {
   image_.flip_vertically();
 }
 
-void Renderer::save_output() noexcept {
-  image_.write_tga_file(options_.outputpath.c_str());
+void Renderer::save_image(std::string filename) noexcept {
+  image_.write_tga_file(filename.c_str());
 }

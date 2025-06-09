@@ -12,28 +12,19 @@ enum ShadingType {
 };
 
 enum RenderingMode {
-  LINE,
+  WIREFRAME,
   TRIANGLE,
-  ZBUF,
+  ZBUFGRAY,
 };
 
 struct RenderOptions {
   RenderingMode mode = RenderingMode::TRIANGLE;
   unsigned int shadingmode = 0;
 
-  std::string objpath = "obj/african_head.obj";
-  std::string diffusepath = "texture/african_head_diffuse.tga";
-  std::string normalpath = "texture/african_head_nm.tga";
-  std::string specularpath = "texture/african_head_spec.tga";
-  std::string outputpath = "output.tga";
-
   int width = 800;
   int height = 800;
   int depth = 255;
 };
-
-const TGAColor white(255, 255, 255, 255);
-const TGAColor red(255, 0, 0, 255);
 
 class Renderer {
 private:
@@ -61,12 +52,12 @@ public:
 
   // functions
   void render() noexcept;
-  void save_output() noexcept;
+  void save_image(std::string filename) noexcept;
 
 private:
   void render_wireframe() noexcept;
-  void render_triangle() noexcept;
   void render_zbufgray() noexcept;
+  void render_triangle() noexcept;
 };
 
 #endif // __RENDERER_H__

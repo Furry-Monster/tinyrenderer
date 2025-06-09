@@ -1,14 +1,11 @@
 #include "gmath.h"
-#include "gutils.h"
 #include "model.h"
 #include "renderer.h"
 #include "tgaimage.h"
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <limits>
 #include <string>
-#include <vector>
 
 void print_usage() {
   std::cout
@@ -80,51 +77,6 @@ const RenderOptions parse_args(int argc, char **argv) {
     }
   }
   return options;
-}
-
-/**
- * @brief Get a matrix for transformation from NDC to Screen/Viewport
- *
- * @param x Viewport origin x value
- * @param y Viewport origin y value
- * @param w Viewport width
- * @param h Viewport height
- * @param depth Depth for Culling and Depth-Testing
- * @return Mat4f Viewport Transformation Matrix
- */
-Mat4f viewport_trans(int x, int y, int w, int h, int depth) noexcept {
-  Mat4f m = {
-      {w / 2.0f, 0, 0, x + w / 2.0f},
-      {0, h / 2.0f, 0, y + h / 2.0f},
-      {0, 0, depth / 2.0f, depth / 2.0f},
-      {0, 0, 0, 1},
-  };
-  return m;
-}
-
-/**
- * @brief Find 2d coord's barycentric.
- *
- * @param pts triangle set
- * @param P P for finding barycentric
- * @return Vec3f uv_map , structure {1,y,x} , be careful it's inverse :-)
- */
-Vec3f barycentric2d(Vec2i *pts, Vec2f P) noexcept {
-  Vec3f x_vec = Vec3f(pts[2].x - pts[0].x, pts[1].x - pts[0].x, pts[0].x - P.x);
-  Vec3f y_vec = Vec3f(pts[2].y - pts[0].y, pts[1].y - pts[0].y, pts[0].y - P.y);
-  // cross multiply here get the solution for linear problem:
-  // u * AB_vec+ v * AC_vec + PA_vec = 0_vec
-  // we can depart it along axis x & y :
-  // [u * AB_vec_x + v * AC_vec_x + PA_vac_x = 0]
-  // [u * AB_vec_y + v * AC_vec_y + PA_vac_y = 0]
-  Vec3f uv = x_vec ^ y_vec;
-  if (std::abs(uv.z) < 1)
-    // triangle is degenerate, in this case return something with negative
-    // coordinates
-    return Vec3f(-1.0f, 1.0f, 1.0f);
-  else
-    return Vec3f(1.0f - (uv.x + uv.y) / uv.z, uv.y / uv.z,
-                 uv.x / uv.z); // return normalized uv result.
 }
 
 /**
@@ -271,151 +223,6 @@ int main(int argc, char **argv) {
 
   renderer.set_model(model);
   renderer.render();
-
-  // render on tga image in different rendering mode
-  if (options.mode == RenderingMode::LINE) {
-    renderer.render();
-  } else if (options.mode == RenderingMode::TRIANGLE) {
-    // allocate depth buffer.
-    float *zbuf = new float[options.width * options.height];
-    for (int i = 0; i < options.width * options.height; i++)
-      zbuf[i] = -std::numeric_limits<float>::max();
-
-    Vec3f light_dir(0, 0, -1); // define light_dir
-    Vec3f camera(0, 0, 3);     // define camera position;
-
-    // this is too simple, using MVP later...
-    Mat4f projection = Mat4f::identity();
-    projection[3][2] = -1.0f / camera.z;
-    Mat4f viewport = viewport_trans(
-        options.width * 1 / 8, options.height * 1 / 8, options.width * 3 / 4,
-        options.height * 3 / 4, options.depth);
-
-    // render each piece/triangles
-    for (int i = 0; i < model->v_ind_num(); i++) {
-      // load data from model
-      std::vector<int> face = model->getv_ind(i);
-      Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
-      Vec3f world_coords[3];  // coord of 3 verts without any transform
-      for (int j = 0; j < 3; j++) {
-        Vec3f v = model->getv(face[j]);
-        world_coords[j] = v;
-        screen_coords[j] = m2v(viewport * projection * v2m(v));
-      }
-
-      // calculate light intensity
-      Vec3f n = (world_coords[2] - world_coords[0]) ^
-                (world_coords[1] - world_coords[0]);
-      n.normalize();
-      float intensity = n * light_dir;
-
-      // render on image, triangle as piece
-      if (intensity > 0) {
-        draw_triangle(
-            screen_coords, zbuf, image,
-            TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
-      }
-    }
-    delete[] zbuf;
-  } else if (options.mode == RenderingMode::ZBUF) {
-    // allocate depth buffer.
-    float *zbuf = new float[options.width * options.height];
-    for (int i = 0; i < options.width * options.height; i++)
-      zbuf[i] = -std::numeric_limits<float>::max();
-
-    Vec3f camera(0, 0, 3); // define camera position;
-    TGAImage zbufimage(options.width, options.height, TGAImage::GRAYSCALE);
-
-    Mat4f projection = Mat4f::identity();
-    projection[3][2] = -1.0f / camera.z;
-    Mat4f viewport = viewport_trans(
-        options.width * 1 / 8, options.height * 1 / 8, options.width * 3 / 4,
-        options.height * 3 / 4, options.depth);
-
-    // render each piece/triangles
-    for (int i = 0; i < model->v_ind_num(); i++) {
-      // load data from model
-      std::vector<int> face = model->getv_ind(i);
-      Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
-      for (int j = 0; j < 3; j++) {
-        Vec3f v = model->getv(face[j]);
-        screen_coords[j] = m2v(viewport * projection * v2m(v));
-      }
-
-      // render on image, triangle as piece
-      draw_triangle(screen_coords, zbuf, image, white);
-    }
-
-    // render finally z buffer preview image
-    for (int i = 0; i < options.width; i++) {
-      for (int j = 0; j < options.height; j++) {
-        zbufimage.set(i, j, TGAColor(zbuf[i + j * options.width], 1));
-      }
-    }
-
-    // we don't need the triangle image, so let's quit here.
-    zbufimage.flip_vertically();
-    zbufimage.write_tga_file(options.outputpath.c_str());
-    delete model;
-    delete[] zbuf;
-    return 0;
-
-  } else if (options.mode == RenderingMode::TEXTURED) {
-    // allocate depth buffer.
-    float *zbuf = new float[options.width * options.height];
-    for (int i = 0; i < options.width * options.height; i++)
-      zbuf[i] = -std::numeric_limits<float>::max();
-
-    Vec3f light_dir(0, 0, -1); // define light_dir
-    Vec3f camera(0, 0, 3);     // define camera position;
-
-    Mat4f projection = Mat4f::identity();
-    projection[3][2] = -1.0f / camera.z;
-    Mat4f viewport = viewport_trans(
-        options.width * 1 / 8, options.height * 1 / 8, options.width * 3 / 4,
-        options.height * 3 / 4, options.depth);
-
-    // render each face/piece
-    for (int i = 0; i < model->face_num(); i++) {
-      // load data from model
-      std::vector<int> v_ind_tuple = model->getv_ind(i);
-      std::vector<int> vt_ind_tuple = model->getvt_ind(i);
-      std::vector<int> vn_ind_tuple = model->getvn_ind(i);
-
-      Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
-      Vec3f world_coords[3];  // coord of 3 verts without any transform
-      Vec2f tex_coords[3];    // coord of 3 verts for texturing
-      Vec3f norm_coords[3];   // coord of 3 vertex for lighting
-
-      for (int j = 0; j < 3; j++) {
-        Vec3f v = model->getv(v_ind_tuple[j]);
-        Vec2f vt = model->getvt(vt_ind_tuple[j]);
-        Vec3f vn = model->getvn(vn_ind_tuple[j]);
-
-        world_coords[j] = v;
-        screen_coords[j] = m2v(viewport * projection * v2m(v));
-        tex_coords[j] = vt;
-        norm_coords[j] = vn;
-      }
-
-      // calculate light intensity
-      Vec3f n = (world_coords[2] - world_coords[0]) ^
-                (world_coords[1] - world_coords[0]);
-      n.normalize();
-      float intensity = n * light_dir;
-
-      // render on image, texturing will be done in draw_triangle()
-      if (intensity > 0) {
-        draw_triangle(screen_coords, tex_coords, zbuf, image, *model,
-                      intensity);
-      }
-    }
-    delete[] zbuf;
-  } else if (options.mode == RenderingMode::SHADING) {
-    std::cout << "Not implemented yet" << std::endl;
-    delete model;
-    return 1;
-  }
 
   renderer.save_output();
   renderer.set_model(nullptr);

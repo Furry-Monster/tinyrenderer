@@ -56,7 +56,7 @@ public:
 
 private:
   void render_wireframe() noexcept;
-  void render_triangles() noexcept;
+  void render_triangle() noexcept;
   void render_zbufgray() noexcept;
   void render_textured() noexcept;
 };

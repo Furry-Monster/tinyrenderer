@@ -27,6 +27,9 @@ struct RenderOptions {
   int depth = 255;
 };
 
+const TGAColor white(255, 255, 255, 255);
+const TGAColor red(255, 0, 0, 255);
+
 class Renderer {
 private:
   TGAImage &image_;
@@ -37,19 +40,21 @@ private:
 
 public:
   // constructors
-  constexpr explicit Renderer(TGAImage &image, RenderOptions &options,
-                              Model *model = nullptr) noexcept;
+  explicit Renderer(TGAImage &image, RenderOptions &options,
+                    Model *model = nullptr) noexcept;
 
   ~Renderer() noexcept;
 
   // getter/setter
-  constexpr void set_image(TGAImage &image) noexcept;
-  constexpr void set_model(Model *model) noexcept;
-  constexpr void set_options(RenderOptions &options) noexcept;
+  void set_image(TGAImage &image) noexcept;
+  void set_model(Model *model) noexcept;
+  void set_options(RenderOptions &options) noexcept;
 
   // functions
   void render() noexcept;
+  void save_output() noexcept;
 
+private:
   void render_wireframe() noexcept;
   void render_triangles() noexcept;
   void render_zbufgray() noexcept;

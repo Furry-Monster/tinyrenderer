@@ -1,6 +1,7 @@
 #include "gmath.h"
 #include "gutils.h"
 #include "model.h"
+#include "renderer.h"
 #include "tgaimage.h"
 #include <cstdlib>
 #include <cstring>
@@ -9,30 +10,8 @@
 #include <string>
 #include <vector>
 
-enum RenderingMode {
-  LINE,
-  TRIANGLE,
-  ZBUF,
-  TEXTURING,
-  SHADING,
-};
-
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
-
-struct RenderOptions {
-  RenderingMode mode = RenderingMode::LINE;
-
-  std::string objpath = "obj/african_head.obj";
-  std::string diffusepath = "texture/african_head_diffuse.tga";
-  std::string normalpath = "texture/african_head_nm.tga";
-  std::string specularpath = "texture/african_head_spec.tga";
-  std::string outputpath = "output.tga";
-
-  int width = 800;
-  int height = 800;
-  int depth = 255;
-};
 
 void print_usage() {
   std::cout
@@ -75,7 +54,7 @@ const RenderOptions parse_args(int argc, char **argv) {
         } else if (mode == "zbuf") {
           options.mode = RenderingMode::ZBUF;
         } else if (mode == "textured") {
-          options.mode = RenderingMode::TEXTURING;
+          options.mode = RenderingMode::TEXTURED;
         } else if (mode == "shading") {
           options.mode = RenderingMode::SHADING;
         } else {
@@ -432,7 +411,7 @@ int main(int argc, char **argv) {
     delete[] zbuf;
     return 0;
 
-  } else if (options.mode == RenderingMode::TEXTURING) {
+  } else if (options.mode == RenderingMode::TEXTURED) {
     // allocate depth buffer.
     float *zbuf = new float[options.width * options.height];
     for (int i = 0; i < options.width * options.height; i++)

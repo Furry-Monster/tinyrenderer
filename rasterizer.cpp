@@ -24,6 +24,7 @@ Rasterizer::Rasterizer(RenderOptions &options, Model *model) noexcept
       model_(model) {
   std::fill_n(zbuffer_.get(), options.width * options.height,
               -std::numeric_limits<float>::max());
+  is_mvp_calc = false;
 }
 
 Rasterizer::~Rasterizer() noexcept {
@@ -42,6 +43,16 @@ Rasterizer::~Rasterizer() noexcept {
   // clear model
   delete model_;
   model_ = nullptr;
+}
+
+/**
+ * @brief Get the complete MVP matrix
+ *
+ * @return Mat4f
+ */
+Mat4f Rasterizer::get_mvp() const noexcept {
+  return is_mvp_calc ? viewport * p_trans * v_trans * m_trans
+                     : Mat4f::identity();
 }
 
 /**
@@ -78,6 +89,17 @@ void Rasterizer::set_options(RenderOptions &options) noexcept {
   options_ = options;
 }
 
+void Rasterizer::calc_mvp() noexcept {
+  m_trans = model_trans();
+  v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
+  p_trans = Mat4f::identity();
+  p_trans[3][2] = -1.0f / camera.z;
+  viewport = viewport_trans(options_.width * 1 / 8, options_.height * 1 / 8,
+                            options_.width * 3 / 4, options_.height * 3 / 4,
+                            options_.depth);
+  is_mvp_calc = true;
+}
+
 /**
  * @brief Render in wireframe mode with cached line
  *
@@ -104,19 +126,8 @@ void Rasterizer::render_wireframe() noexcept {
  *
  */
 void Rasterizer::render_zbufgray() noexcept {
-  Vec3f camera(1, 1, 3);     // define camera position;
-  Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
-
   TGAImage zbufimage(options_.width, options_.height, TGAImage::GRAYSCALE);
-
-  Mat4f m_trans = model_trans();
-  Mat4f v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
-  Mat4f p_trans = Mat4f::identity();
-  p_trans[3][2] = -1.0f / camera.z;
-  Mat4f viewport = viewport_trans(
-      options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
-      options_.height * 3 / 4, options_.depth);
 
   // render each piece/triangles
   for (int i = 0; i < model_->f_vi_num(); i++) {
@@ -125,7 +136,7 @@ void Rasterizer::render_zbufgray() noexcept {
     Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
     for (int j = 0; j < 3; j++) {
       Vec3f v = model_->getv(face[j]);
-      screen_coords[j] = m2v(viewport * p_trans * v_trans * m_trans * v2m(v));
+      screen_coords[j] = m2v3(viewport * p_trans * v_trans * m_trans * v2m(v));
     }
     cached_triangle.set_rverts(screen_coords);
 
@@ -152,20 +163,7 @@ void Rasterizer::render_zbufgray() noexcept {
  *
  */
 void Rasterizer::render_triangle() noexcept {
-  Vec3f light_dir(0, 0, -1); // define light_dir
-  Vec3f camera(1, 0, 3);     // define camera position
-  Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
-
-  Mat4f m_trans = model_trans();
-  Mat4f v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
-  // Mat4f p_trans = projection_trans(60, 16.0f / 9.0f, 1, 255);
-  // Below is the simple projection matrix used before...
-  Mat4f p_trans = Mat4f::identity();
-  p_trans[3][2] = -1.0f / (camera - obj_center).norm();
-  Mat4f viewport = viewport_trans(
-      options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
-      options_.height * 3 / 4, options_.depth);
 
   // render each face/piece
   for (int i = 0; i < model_->f_num(); i++) {
@@ -185,7 +183,7 @@ void Rasterizer::render_triangle() noexcept {
       Vec3f vn = model_->getvn(vn_ind_tuple[j]);
 
       world_coords[j] = v;
-      screen_coords[j] = m2v(viewport * p_trans * v_trans * m_trans * v2m(v));
+      screen_coords[j] = m2v3(viewport * p_trans * v_trans * m_trans * v2m(v));
       tex_coords[j] = vt;
       norm_coords[j] = vn;
     }
@@ -216,6 +214,8 @@ void Rasterizer::render_triangle() noexcept {
  */
 void Rasterizer::render() noexcept {
   frame_.get()->clear();
+  if (!is_mvp_calc)
+    calc_mvp();
 
   switch (options_.mode) {
   case WIREFRAME:

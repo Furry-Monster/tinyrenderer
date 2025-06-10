@@ -14,9 +14,13 @@
  * @return constexpr Vec3<T> translated vector
  */
 template <typename T>
-constexpr static Vec3<T> m2v(const Matrix<T, 4, 1> m) noexcept {
+constexpr static Vec3<T> m2v3(const Matrix<T, 4, 1> m) noexcept {
   // WARNING: if you pass a non-4*1 matrix, this still works well...
   return Vec3<T>(m[0][0] / m[3][0], m[1][0] / m[3][0], m[2][0] / m[3][0]);
+}
+template <typename T>
+constexpr static Vec4<T> m2v4(const Matrix<T, 4, 1> m) noexcept {
+  return Vec4<T>(m[0][0], m[1][0], m[2][0], m[3][0]);
 }
 
 /**
@@ -33,6 +37,15 @@ constexpr static Matrix<T, 4, 1> v2m(const Vec3<T> v) noexcept {
   m[1][0] = v.y;
   m[2][0] = v.z;
   m[3][0] = T(1.0f);
+  return m;
+}
+template <typename T>
+constexpr static Matrix<T, 4, 1> v2m(const Vec4<T> v) noexcept {
+  Matrix<T, 4, 1> m;
+  m[0][0] = v.x;
+  m[1][0] = v.y;
+  m[2][0] = v.z;
+  m[3][0] = v.w;
   return m;
 }
 

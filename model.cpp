@@ -115,5 +115,6 @@ Vec2f Model::getvt(int iface, int nth_vert) const {
   return vt_[f_vti_[iface][nth_vert]];
 }
 Vec3f Model::getvn(int iface, int nth_vert) const {
-  return vn_[f_vni_[iface][nth_vert]];
+  Vec3f vn_cpy = vn_[f_vni_[iface][nth_vert]];
+  return vn_cpy.normalize();
 }

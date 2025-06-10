@@ -28,11 +28,12 @@ struct TGAColor {
     unsigned char raw[4];
     unsigned int val;
   };
-  int bytespp;
+  unsigned char bytespp;
 
   TGAColor() : val(0), bytespp(1) {}
 
-  TGAColor(unsigned char R, unsigned char G, unsigned char B, unsigned char A)
+  TGAColor(unsigned char R, unsigned char G, unsigned char B,
+           unsigned char A = 255)
       : b(B), g(G), r(R), a(A), bytespp(4) {}
 
   TGAColor(int v, int bpp) : val(v), bytespp(bpp) {}
@@ -51,6 +52,18 @@ struct TGAColor {
       val = c.val;
     }
     return *this;
+  }
+
+  unsigned char &operator[](const int i) { return raw[i]; }
+
+  TGAColor operator*(float intensity) const {
+    TGAColor res = *this;
+    intensity =
+        (intensity > 1.0f ? 1.0f : (intensity < 0.0f ? 0.0f : intensity));
+    for (int i = 0; i < 4; i++) {
+      res.raw[i] *= intensity;
+    }
+    return res;
   }
 };
 

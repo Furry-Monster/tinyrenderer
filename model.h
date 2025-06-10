@@ -12,14 +12,14 @@
 class Model {
 private:
   // vertex properties
-  std::vector<Vec3f> v_;      // vertex
-  std::vector<Vec2f> v_tex_;  // texture vertex
-  std::vector<Vec3f> v_norm_; // normal vertex
+  std::vector<Vec3f> v_;  // vertex
+  std::vector<Vec2f> vt_; // texture vertex
+  std::vector<Vec3f> vn_; // normal vertex
 
   // face properties
-  std::vector<std::vector<int>> v_indices_;  // vertex indices
-  std::vector<std::vector<int>> vt_indices_; // texture vertex indices
-  std::vector<std::vector<int>> vn_indices_; // normal vertex indices
+  std::vector<std::vector<int>> f_vi_;  // vertex indices
+  std::vector<std::vector<int>> f_vti_; // texture vertex indices
+  std::vector<std::vector<int>> f_vni_; // normal vertex indices
 
 public:
   // constructors
@@ -31,20 +31,25 @@ public:
   int vt_num() const;
   int vn_num() const;
 
-  int face_num() const;
-  int v_ind_num() const;
-  int vt_ind_num() const;
-  int vn_ind_num() const;
+  int f_num() const;
+  int f_vi_num() const;
+  int f_vti_num() const;
+  int f_vni_num() const;
 
   // getters
   Vec3f getv(int ind) const;
   Vec2f getvt(int ind) const;
   Vec3f getvn(int ind) const;
 
-  std::vector<std::vector<int>> getface(int ind) const;
-  std::vector<int> getv_ind(int ind) const;
-  std::vector<int> getvt_ind(int ind) const;
-  std::vector<int> getvn_ind(int ind) const;
+  std::vector<std::vector<int>> getf(int ind) const;
+
+  std::vector<int> getf_vi(int ind) const;
+  std::vector<int> getf_vti(int ind) const;
+  std::vector<int> getf_vni(int ind) const;
+
+  Vec3f getv(int iface, int nth_vert) const;
+  Vec2f getvt(int iface, int nth_vert) const;
+  Vec3f getvn(int iface, int nth_vert) const;
 };
 
 #endif

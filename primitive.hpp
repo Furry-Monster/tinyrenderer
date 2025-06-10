@@ -2,9 +2,7 @@
 #define __PRIMITIVE_H__
 
 #include "gmath.hpp"
-#include "renderer.h"
 #include "tgaimage.h"
-#include <vector>
 
 class Primitive {
 public:
@@ -52,9 +50,9 @@ public:
     int y = start_.y;
     for (int x = start_.x; x <= end_.x; x++) {
       if (steep) {
-        image.set(y, x, color_);
+        image.set_pixel(y, x, color_);
       } else {
-        image.set(x, y, color_);
+        image.set_pixel(x, y, color_);
       }
       error2 += derror2;
       if (error2 > dx) {
@@ -171,7 +169,7 @@ public:
           // if only we update buffer , the "frame buffer" would be
           // update (actually we consider the image reference as our frame
           // buffer XD )
-          image.set(i, j, white);
+          image.set_pixel(i, j, white);
         }
       }
     }
@@ -232,7 +230,7 @@ public:
           int sample_x = tex_pos.u * diffuse.get_width();
           int sample_y = tex_pos.v * diffuse.get_height();
 
-          color = diffuse.get(sample_x, sample_y);
+          color = diffuse.get_pixel(sample_x, sample_y);
         } else {
           // use no texture maps...
           // we just use white/gray to render it.
@@ -252,7 +250,7 @@ public:
           // if only we update buffer , the "frame buffer" would be
           // update (actually we consider the image reference as our frame
           // buffer XD )
-          image.set(i, j, color);
+          image.set_pixel(i, j, color);
         }
       }
     }

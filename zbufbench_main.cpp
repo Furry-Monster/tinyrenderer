@@ -19,9 +19,9 @@ void line(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color) {
     float t = (x - p0.x) / (float)(p1.x - p0.x);
     int y = p0.y * (1. - t) + p1.y * t + .5;
     if (steep) {
-      image.set(y, x, color);
+      image.set_pixel(y, x, color);
     } else {
-      image.set(x, y, color);
+      image.set_pixel(x, y, color);
     }
   }
 }
@@ -36,7 +36,7 @@ void rasterize(Vec2i p0, Vec2i p1, TGAImage &image, TGAColor color,
     int y = p0.y * (1. - t) + p1.y * t;
     if (ybuffer[x] < y) {
       ybuffer[x] = y;
-      image.set(x, 0, color);
+      image.set_pixel(x, 0, color);
     }
   }
 }

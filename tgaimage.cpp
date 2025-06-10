@@ -260,14 +260,14 @@ bool TGAImage::unload_rle_data(std::ofstream &out) const {
   return true;
 }
 
-TGAColor TGAImage::get(int x, int y) const {
+TGAColor TGAImage::get_pixel(int x, int y) const {
   if (!data || x < 0 || y < 0 || x >= width || y >= height) {
     return TGAColor();
   }
   return TGAColor(data + (x + y * width) * bytespp, bytespp);
 }
 
-bool TGAImage::set(int x, int y, TGAColor c) {
+bool TGAImage::set_pixel(int x, int y, TGAColor c) {
   if (!data || x < 0 || y < 0 || x >= width || y >= height) {
     return false;
   }
@@ -284,13 +284,14 @@ int TGAImage::get_height() const { return height; }
 bool TGAImage::flip_horizontally() {
   if (!data)
     return false;
+
   int half = width >> 1;
   for (int i = 0; i < half; i++) {
     for (int j = 0; j < height; j++) {
-      TGAColor c1 = get(i, j);
-      TGAColor c2 = get(width - 1 - i, j);
-      set(i, j, c2);
-      set(width - 1 - i, j, c1);
+      TGAColor c1 = get_pixel(i, j);
+      TGAColor c2 = get_pixel(width - 1 - i, j);
+      set_pixel(i, j, c2);
+      set_pixel(width - 1 - i, j, c1);
     }
   }
   return true;

@@ -1,4 +1,4 @@
-#include "renderer.h"
+#include "rasterizer.h"
 #include "gmath.hpp"
 #include "gutils.hpp"
 #include "primitive.hpp"
@@ -16,18 +16,20 @@
  * @param model model ptr for renderer,this will be completly managed by
  * renderer after passing
  */
-Renderer::Renderer(TGAImage &image, RenderOptions &options,
-                   Model *model) noexcept
-    : image_(image), options_(options),
+Rasterizer::Rasterizer(RenderOptions &options, Model *model) noexcept
+    : options_(options),
       zbuffer_(std::make_unique<float[]>(options.width * options.height)),
+      frame_(std::make_unique<TGAImage>(options.width, options.height,
+                                        TGAImage::RGB)),
       model_(model) {
   std::fill_n(zbuffer_.get(), options.width * options.height,
               -std::numeric_limits<float>::max());
 }
 
-Renderer::~Renderer() noexcept {
+Rasterizer::~Rasterizer() noexcept {
   // clear rendered image
-  image_.clear();
+  frame_.get()->clear();
+  frame_.reset();
 
   // clear textures
   diffusemap_.clear();
@@ -43,21 +45,11 @@ Renderer::~Renderer() noexcept {
 }
 
 /**
- * @brief set image ref
- *
- * @param image new image to be set
- */
-void Renderer::set_image(TGAImage &image) noexcept {
-  // here clear image_ ref
-  image_.clear();
-  image_ = image;
-}
-/**
  * @brief set model ptr,this will only release the model ptr if pass nullptr
  *
  * @param model new model to be set
  */
-void Renderer::set_model(Model *model) noexcept {
+void Rasterizer::set_model(Model *model) noexcept {
   // here clear model_ ptr
   delete model_;
   model_ = model;
@@ -68,7 +60,7 @@ void Renderer::set_model(Model *model) noexcept {
  * @param texture TGAImage type image for texture
  * @param type shading type the texture will be used for
  */
-void Renderer::set_texture(TGAImage &texture, ShadingType type) noexcept {
+void Rasterizer::set_texture(TGAImage &texture, ShadingType type) noexcept {
   texture.flip_vertically();
 
   if (type == ShadingType::DIFFUSE) {
@@ -82,7 +74,7 @@ void Renderer::set_texture(TGAImage &texture, ShadingType type) noexcept {
     specularmap_ = texture;
   }
 }
-void Renderer::set_options(RenderOptions &options) noexcept {
+void Rasterizer::set_options(RenderOptions &options) noexcept {
   options_ = options;
 }
 
@@ -90,7 +82,7 @@ void Renderer::set_options(RenderOptions &options) noexcept {
  * @brief Render in wireframe mode with cached line
  *
  */
-void Renderer::render_wireframe() noexcept {
+void Rasterizer::render_wireframe() noexcept {
   Line cached_line(white);
   for (int i = 0; i < model_->v_ind_num(); i++) {
     std::vector<int> face = model_->getv_ind(i);
@@ -103,7 +95,7 @@ void Renderer::render_wireframe() noexcept {
       int y1 = (v1.y + 1.) * options_.height / 2.;
       cached_line.set_point(Vec2i(x0, y0), Vec2i(x1, y1));
     }
-    cached_line.draw(image_, zbuffer_.get());
+    cached_line.draw(*(frame_.get()), zbuffer_.get());
   }
 }
 
@@ -111,7 +103,7 @@ void Renderer::render_wireframe() noexcept {
  * @brief Render in gray image zbuffer mode
  *
  */
-void Renderer::render_zbufgray() noexcept {
+void Rasterizer::render_zbufgray() noexcept {
   Vec3f camera(1, 1, 3);     // define camera position;
   Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
@@ -138,26 +130,28 @@ void Renderer::render_zbufgray() noexcept {
     cached_triangle.set_rverts(screen_coords);
 
     // render on image, triangle as piece
-    cached_triangle.draw(image_, zbuffer_.get());
+    cached_triangle.draw(*(frame_.get()), zbuffer_.get());
   }
 
   // render finally z buffer preview image
   for (int i = 0; i < options_.width; i++) {
     for (int j = 0; j < options_.height; j++) {
-      zbufimage.set(i, j, TGAColor(zbuffer_.get()[i + j * options_.width], 1));
+      zbufimage.set_pixel(i, j,
+                          TGAColor(zbuffer_.get()[i + j * options_.width], 1));
     }
   }
 
   // we don't need the triangle image, so let's replace it.
-  image_.clear();
-  image_ = zbufimage;
+  frame_.get()->clear();
+  frame_.reset();
+  frame_ = std::make_unique<TGAImage>(std::move(zbufimage));
 }
 
 /**
  * @brief Render in triangle piece mode with cached triangle
  *
  */
-void Renderer::render_triangle() noexcept {
+void Rasterizer::render_triangle() noexcept {
   Vec3f light_dir(0, 0, -1); // define light_dir
   Vec3f camera(1, 0, 3);     // define camera position
   Vec3f obj_center(0, 0, 0); // define object center position
@@ -209,7 +203,8 @@ void Renderer::render_triangle() noexcept {
 
     // render on image, texturing will be done in draw_triangle()
     if (intensity > 0) {
-      cached_triangle.draw(image_, zbuffer_.get(), diffusemap_, intensity);
+      cached_triangle.draw(*(frame_.get()), zbuffer_.get(), diffusemap_,
+                           intensity);
     }
   }
 }
@@ -219,8 +214,8 @@ void Renderer::render_triangle() noexcept {
  * render)
  *
  */
-void Renderer::render() noexcept {
-  image_.clear();
+void Rasterizer::render() noexcept {
+  frame_.get()->clear();
 
   switch (options_.mode) {
   case WIREFRAME:
@@ -236,7 +231,7 @@ void Renderer::render() noexcept {
 
   // flip image vertically ,
   // cuz the drawing in TGAImage is upside down.
-  image_.flip_vertically();
+  frame_.get()->flip_vertically();
 }
 
 /**
@@ -244,6 +239,6 @@ void Renderer::render() noexcept {
  *
  * @param filename image to store the output, suffix should be .tga
  */
-void Renderer::save_image(std::string filename) noexcept {
-  image_.write_tga_file(filename.c_str());
+void Rasterizer::save_image(std::string filename) noexcept {
+  frame_.get()->write_tga_file(filename.c_str());
 }

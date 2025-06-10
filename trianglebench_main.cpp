@@ -29,9 +29,9 @@ void draw_line(Vec2i v0, Vec2i v1, TGAImage &image, TGAColor color) {
   int y = v0.y;
   for (int x = v0.x; x <= v1.x; x++) {
     if (steep) {
-      image.set(y, x, color);
+      image.set_pixel(y, x, color);
     } else {
-      image.set(x, y, color);
+      image.set_pixel(x, y, color);
     }
     error2 += derror2;
     if (error2 > dx) {
@@ -97,8 +97,8 @@ void draw_triangle3(Vec2i v0, Vec2i v1, Vec2i v2, TGAImage &image,
     if (A.x > B.x)
       std::swap(A, B);
     for (int j = A.x; j <= B.x; j++) {
-      image.set(j, v0.y + i,
-                color); // attention, due to int casts v0.y+i != A.y
+      image.set_pixel(j, v0.y + i,
+                      color); // attention, due to int casts v0.y+i != A.y
     }
   }
 }
@@ -141,7 +141,7 @@ void draw_triangle4(Vec2i *pts, TGAImage &image, TGAColor color) {
       if (bc.x < 0 || bc.y < 0 || bc.z < 0)
         continue;
       else
-        image.set(i, j, color);
+        image.set_pixel(i, j, color);
     }
   }
 }

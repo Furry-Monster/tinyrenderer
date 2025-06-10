@@ -11,7 +11,7 @@ void draw_line1(int x0, int y0, int x1, int y1, TGAImage &image,
   for (float t = 0.0f; t < 1.; t += 0.001f) {
     int x = x0 + (x1 - x0) * t;
     int y = y0 + (y1 - y0) * t;
-    image.set(x, y, color);
+    image.set_pixel(x, y, color);
   }
 }
 
@@ -21,7 +21,7 @@ void draw_line2(int x0, int y0, int x1, int y1, TGAImage &image,
   for (int x = x0; x <= x1; x++) {
     float t = (x - x0) / (float)(x1 - x0);
     int y = y0 * (1. - t) + y1 * t;
-    image.set(x, y, color);
+    image.set_pixel(x, y, color);
   }
 }
 
@@ -43,9 +43,9 @@ void draw_line3(int x0, int y0, int x1, int y1, TGAImage &image,
     float t = (x - x0) / (float)(x1 - x0);
     int y = y0 * (1. - t) + y1 * t;
     if (steep) {
-      image.set(y, x, color); // if transposed, de−transpose
+      image.set_pixel(y, x, color); // if transposed, de−transpose
     } else {
-      image.set(x, y, color);
+      image.set_pixel(x, y, color);
     }
   }
 }
@@ -71,9 +71,9 @@ void draw_line4(int x0, int y0, int x1, int y1, TGAImage &image,
   int y = y0;
   for (int x = x0; x <= x1; x++) {
     if (steep) {
-      image.set(y, x, color); // if transposed, de−transpose
+      image.set_pixel(y, x, color); // if transposed, de−transpose
     } else {
-      image.set(x, y, color);
+      image.set_pixel(x, y, color);
     }
     error += derror;
     if (error > .5) {
@@ -103,9 +103,9 @@ void draw_line5(int x0, int y0, int x1, int y1, TGAImage &image,
   int y = y0;
   for (int x = x0; x <= x1; x++) {
     if (steep) {
-      image.set(y, x, color);
+      image.set_pixel(y, x, color);
     } else {
-      image.set(x, y, color);
+      image.set_pixel(x, y, color);
     }
     error2 += derror2;
     if (error2 > dx) {

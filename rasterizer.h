@@ -1,5 +1,5 @@
-#ifndef __RENDERER_H__
-#define __RENDERER_H__
+#ifndef __RASTERIZER_H__
+#define __RASTERIZER_H__
 
 #include "model.h"
 #include "tgaimage.h"
@@ -26,11 +26,11 @@ struct RenderOptions {
   int depth = 255;
 };
 
-class Renderer {
+class Rasterizer {
 private:
-  TGAImage &image_;
   RenderOptions &options_;
   std::unique_ptr<float[]> zbuffer_;
+  std::unique_ptr<TGAImage> frame_;
 
   Model *model_;
   TGAImage diffusemap_;
@@ -39,13 +39,11 @@ private:
 
 public:
   // constructors
-  explicit Renderer(TGAImage &image, RenderOptions &options,
-                    Model *model = nullptr) noexcept;
+  explicit Rasterizer(RenderOptions &options, Model *model = nullptr) noexcept;
 
-  ~Renderer() noexcept;
+  ~Rasterizer() noexcept;
 
   // getter/setter
-  void set_image(TGAImage &image) noexcept;
   void set_model(Model *model) noexcept;
   void set_texture(TGAImage &texture, ShadingType type) noexcept;
   void set_options(RenderOptions &options) noexcept;
@@ -60,4 +58,4 @@ private:
   void render_triangle() noexcept;
 };
 
-#endif // __RENDERER_H__
+#endif // __RASTERIZER_H__

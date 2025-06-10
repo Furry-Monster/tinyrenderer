@@ -1,5 +1,5 @@
 #include "model.h"
-#include "renderer.h"
+#include "rasterizer.h"
 #include "tgaimage.h"
 #include <cstdlib>
 #include <cstring>
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
   // initialize the renderer
   RenderOptions options = parse_args(argc, argv);
   TGAImage image(options.width, options.height, TGAImage::RGB);
-  Renderer renderer(image, options);
+  Rasterizer rst(options);
 
   // load model from files , owner scope of model will be set to renderer after
   // passing to constructor of renderer or calling set_model() function
@@ -107,23 +107,23 @@ int main(int argc, char **argv) {
     std::cerr << "Error: Can't load model from " << path.obj << std::endl;
     return 1;
   }
-  renderer.set_model(model);
+  rst.set_model(model);
 
   // load texture maps from files
   TGAImage diffusemap, normalmap, specularmap;
   if (diffusemap.read_tga_file(path.diffuse.c_str()))
-    renderer.set_texture(diffusemap, DIFFUSE);
+    rst.set_texture(diffusemap, DIFFUSE);
   if (normalmap.read_tga_file(path.normal.c_str()))
-    renderer.set_texture(normalmap, NORMAL);
+    rst.set_texture(normalmap, NORMAL);
   if (specularmap.read_tga_file(path.specular.c_str()))
-    renderer.set_texture(specularmap, SPECULAR);
+    rst.set_texture(specularmap, SPECULAR);
 
   // now we really need to start rendering
-  renderer.render();
+  rst.render();
 
   // save image and release model, it won't be used anymore
-  renderer.save_image(path.output);
-  renderer.set_model(nullptr);
+  rst.save_image(path.output);
+  rst.set_model(nullptr);
 
   return 0;
 }

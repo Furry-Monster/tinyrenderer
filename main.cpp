@@ -6,12 +6,18 @@
 #include <iostream>
 #include <string>
 
-std::string obj_path = "obj/african_head.obj";
-std::string diffuse_path = "texture/african_head_diffuse.tga";
-std::string normal_path = "texture/african_head_nm.tga";
-std::string specular_path = "texture/african_head_spec.tga";
-std::string output_path = "output.tga";
+struct FilePath {
+  std::string obj = "obj/african_head.obj";
+  std::string diffuse = "texture/african_head_diffuse.tga";
+  std::string normal = "texture/african_head_nm.tga";
+  std::string specular = "texture/african_head_spec.tga";
+  std::string output = "output.tga";
+} path;
 
+/**
+ * @brief print usage text on terminal
+ *
+ */
 void print_usage() {
   std::cout
       << "Usage: tinyrenderer [Options] <filepath>\n"
@@ -79,10 +85,10 @@ const RenderOptions parse_args(int argc, char **argv) {
       }
     } else if (arg == "-o" || arg == "--output") {
       if (i + 1 < argc) {
-        output_path = argv[++i];
+        path.output = argv[++i];
       }
     } else if (arg[0] != '-') {
-      obj_path = arg;
+      path.obj = arg;
     }
   }
   return options;
@@ -94,26 +100,29 @@ int main(int argc, char **argv) {
   TGAImage image(options.width, options.height, TGAImage::RGB);
   Renderer renderer(image, options);
 
-  // load model from files
-  Model *model = new Model(obj_path.c_str());
+  // load model from files , owner scope of model will be set to renderer after
+  // passing to constructor of renderer or calling set_model() function
+  Model *model = new Model(path.obj);
   if (model == nullptr) {
-    std::cerr << "Error: Can't load model from " << obj_path << std::endl;
+    std::cerr << "Error: Can't load model from " << path.obj << std::endl;
     return 1;
   }
   renderer.set_model(model);
 
   // load texture maps from files
   TGAImage diffusemap, normalmap, specularmap;
-  if (diffusemap.read_tga_file(diffuse_path.c_str()))
+  if (diffusemap.read_tga_file(path.diffuse.c_str()))
     renderer.set_texture(diffusemap, DIFFUSE);
-  if (normalmap.read_tga_file(normal_path.c_str()))
+  if (normalmap.read_tga_file(path.normal.c_str()))
     renderer.set_texture(normalmap, NORMAL);
-  if (specularmap.read_tga_file(specular_path.c_str()))
+  if (specularmap.read_tga_file(path.specular.c_str()))
     renderer.set_texture(specularmap, SPECULAR);
 
+  // now we really need to start rendering
   renderer.render();
 
-  renderer.save_image(output_path);
+  // save image and release model, it won't be used anymore
+  renderer.save_image(path.output);
   renderer.set_model(nullptr);
 
   return 0;

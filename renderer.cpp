@@ -6,10 +6,20 @@
 #include <limits>
 #include <memory>
 
+/**
+ * @brief Construct a new Renderer:: Renderer object,zbuffer will be
+ * automatically initialized
+ *
+ * @param image image ref for renderer
+ * @param options options ref for renderer
+ * @param model model ptr for renderer,this will be completly managed by
+ * renderer after passing
+ */
 Renderer::Renderer(TGAImage &image, RenderOptions &options,
                    Model *model) noexcept
-    : image_(image), options_(options), model_(model),
-      zbuffer_(std::make_unique<float[]>(options.width * options.height)) {
+    : image_(image), options_(options),
+      zbuffer_(std::make_unique<float[]>(options.width * options.height)),
+      model_(model) {
   std::fill_n(zbuffer_.get(), options.width * options.height,
               -std::numeric_limits<float>::max());
 }
@@ -24,23 +34,39 @@ Renderer::~Renderer() noexcept {
   specularmap_.clear();
 
   // release buffer
-  zbuffer_.release();
+  zbuffer_.reset();
 
   // clear model
   delete model_;
   model_ = nullptr;
 }
 
+/**
+ * @brief set image ref
+ *
+ * @param image new image to be set
+ */
 void Renderer::set_image(TGAImage &image) noexcept {
   // here clear image_ ref
   image_.clear();
   image_ = image;
 }
+/**
+ * @brief set model ptr,this will only release the model ptr if pass nullptr
+ *
+ * @param model new model to be set
+ */
 void Renderer::set_model(Model *model) noexcept {
   // here clear model_ ptr
   delete model_;
   model_ = model;
 }
+/**
+ * @brief set texture map for specific shading type
+ *
+ * @param texture TGAImage type image for texture
+ * @param type shading type the texture will be used for
+ */
 void Renderer::set_texture(TGAImage &texture, ShadingType type) noexcept {
   texture.flip_vertically();
 
@@ -79,6 +105,10 @@ Mat4f viewport_trans(int x, int y, int w, int h, int depth) noexcept {
   return m;
 }
 
+/**
+ * @brief Render in wireframe mode with cached line
+ *
+ */
 void Renderer::render_wireframe() noexcept {
   Line cached_line(white);
   for (int i = 0; i < model_->v_ind_num(); i++) {
@@ -96,6 +126,10 @@ void Renderer::render_wireframe() noexcept {
   }
 }
 
+/**
+ * @brief Render in gray image zbuffer mode
+ *
+ */
 void Renderer::render_zbufgray() noexcept {
   Vec3f camera(0, 0, 3); // define camera position;
   Triangle cached_triangle(options_.shadingmode);
@@ -135,6 +169,10 @@ void Renderer::render_zbufgray() noexcept {
   image_ = zbufimage;
 }
 
+/**
+ * @brief Render in triangle piece mode with cached triangle
+ *
+ */
 void Renderer::render_triangle() noexcept {
   Vec3f light_dir(0, 0, -1); // define light_dir
   Vec3f camera(0, 0, 3);     // define camera position;
@@ -187,6 +225,11 @@ void Renderer::render_triangle() noexcept {
   }
 }
 
+/**
+ * @brief Render regarding rendering mode(shading mode will be used in triangle
+ * render)
+ *
+ */
 void Renderer::render() noexcept {
   image_.clear();
 
@@ -207,6 +250,11 @@ void Renderer::render() noexcept {
   image_.flip_vertically();
 }
 
+/**
+ * @brief Save image into the provided path in format of .tga image
+ *
+ * @param filename image to store the output, suffix should be .tga
+ */
 void Renderer::save_image(std::string filename) noexcept {
   image_.write_tga_file(filename.c_str());
 }

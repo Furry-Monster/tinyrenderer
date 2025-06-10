@@ -5,6 +5,7 @@
 #include "tgaimage.h"
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Only support .obj format Models
@@ -22,7 +23,7 @@ private:
 
 public:
   // constructors
-  Model(const char *filename);
+  explicit Model(std::string filename);
   ~Model();
 
   // get sizes

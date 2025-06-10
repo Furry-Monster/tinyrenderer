@@ -29,13 +29,13 @@ struct RenderOptions {
 class Renderer {
 private:
   TGAImage &image_;
+  RenderOptions &options_;
+  std::unique_ptr<float[]> zbuffer_;
+
   Model *model_;
   TGAImage diffusemap_;
   TGAImage normalmap_;
   TGAImage specularmap_;
-  RenderOptions &options_;
-
-  std::unique_ptr<float[]> zbuffer_;
 
 public:
   // constructors

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-Model::Model(const char *filename)
+Model::Model(std::string filename)
     : v_(), v_tex_(), v_norm_(), v_indices_(), vt_indices_(), vn_indices_() {
   std::ifstream in;
   in.open(filename, std::ifstream::in);

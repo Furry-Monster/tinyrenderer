@@ -7,7 +7,7 @@
 #include <vector>
 
 Model::Model(std::string filename)
-    : v_(), v_tex_(), v_norm_(), v_indices_(), vt_indices_(), vn_indices_() {
+    : v_(), vt_(), vn_(), f_vi_(), f_vti(), f_vni() {
   std::ifstream in;
   in.open(filename, std::ifstream::in);
   if (in.fail())
@@ -32,13 +32,13 @@ Model::Model(std::string filename)
       iss >> trash >> trash; // skip "vt  "
       for (int i = 0; i < 3; i++)
         iss >> vt.raw[i];
-      v_tex_.push_back(vt.toVec2());
+      vt_.push_back(vt.toVec2());
     } else if (!line.compare(0, 4, "vn  ")) {
       Vec3f vn;
       iss >> trash >> trash; // skip "vn  "
       for (int i = 0; i < 3; i++)
         iss >> vn.raw[i];
-      v_norm_.push_back(vn);
+      vn_.push_back(vn);
     } else if (!line.compare(0, 2, "f ")) {
       std::vector<int> vert_indices, tex_indices, norm_indices;
       int vert_idx, tex_idx, norm_idx;
@@ -56,53 +56,53 @@ Model::Model(std::string filename)
         norm_indices.push_back(norm_idx);
       }
 
-      v_indices_.push_back(vert_indices);
-      vt_indices_.push_back(tex_indices);
-      vn_indices_.push_back(norm_indices);
+      f_vi_.push_back(vert_indices);
+      f_vti.push_back(tex_indices);
+      f_vni.push_back(norm_indices);
     }
   }
   std::cerr << "# verts sum as: " << v_.size() << "\n"
-            << "# texture verts sum as: " << v_tex_.size() << "\n"
-            << "# normal verts sum as: " << v_norm_.size() << "\n"
-            << "# verts indices (faces) sum as: " << v_indices_.size() << "\n"
-            << "# texture verts indices sum as: " << vt_indices_.size() << "\n"
-            << "# normal verts indices sum as: " << vn_indices_.size() << "\n";
+            << "# texture verts sum as: " << vt_.size() << "\n"
+            << "# normal verts sum as: " << vn_.size() << "\n"
+            << "# verts indices (faces) sum as: " << f_vi_.size() << "\n"
+            << "# texture verts indices sum as: " << f_vti.size() << "\n"
+            << "# normal verts indices sum as: " << f_vni.size() << "\n";
 }
 Model::~Model() {
   v_.clear();
-  v_tex_.clear();
-  v_norm_.clear();
+  vt_.clear();
+  vn_.clear();
 
-  v_indices_.clear();
-  vt_indices_.clear();
-  vn_indices_.clear();
+  f_vi_.clear();
+  f_vti.clear();
+  f_vni.clear();
 #ifdef DEBUG
   std::cerr << "Model destroyed" << std::endl;
 #endif
 }
 
 int Model::v_num() const { return (int)v_.size(); }
-int Model::vt_num() const { return (int)v_tex_.size(); }
-int Model::vn_num() const { return (int)v_norm_.size(); }
+int Model::vt_num() const { return (int)vt_.size(); }
+int Model::vn_num() const { return (int)vn_.size(); }
 
-int Model::face_num() const { return (int)v_indices_.size(); }
-int Model::v_ind_num() const { return (int)v_indices_.size(); }
-int Model::vt_ind_num() const { return (int)vt_indices_.size(); }
-int Model::vn_ind_num() const { return (int)vn_indices_.size(); }
+int Model::f_num() const { return (int)f_vi_.size(); }
+int Model::f_vi_num() const { return (int)f_vi_.size(); }
+int Model::f_vti_num() const { return (int)f_vti.size(); }
+int Model::f_vni_num() const { return (int)f_vni.size(); }
 
 Vec3f Model::getv(int ind) const { return v_[ind]; }
-Vec2f Model::getvt(int ind) const { return v_tex_[ind]; }
-Vec3f Model::getvn(int ind) const { return v_norm_[ind]; }
+Vec2f Model::getvt(int ind) const { return vt_[ind]; }
+Vec3f Model::getvn(int ind) const { return vn_[ind]; }
 
-std::vector<std::vector<int>> Model::getface(int ind) const {
+std::vector<std::vector<int>> Model::getf(int ind) const {
   std::vector<std::vector<int>> f;
-  std::vector<int> v_indices = getv_ind(ind);
-  std::vector<int> vt_indices = getvt_ind(ind);
-  std::vector<int> vn_indices = getvn_ind(ind);
+  std::vector<int> v_indices = getf_vi(ind);
+  std::vector<int> vt_indices = getf_vti(ind);
+  std::vector<int> vn_indices = getf_vni(ind);
   for (int i = 0; i < 3; i++)
     f.push_back(std::vector<int>{v_indices[i], vt_indices[i], vn_indices[i]});
   return f;
 }
-std::vector<int> Model::getv_ind(int ind) const { return v_indices_[ind]; }
-std::vector<int> Model::getvt_ind(int ind) const { return vt_indices_[ind]; }
-std::vector<int> Model::getvn_ind(int ind) const { return vn_indices_[ind]; }
+std::vector<int> Model::getf_vi(int ind) const { return f_vi_[ind]; }
+std::vector<int> Model::getf_vti(int ind) const { return f_vti[ind]; }
+std::vector<int> Model::getf_vni(int ind) const { return f_vni[ind]; }

@@ -84,8 +84,8 @@ void Rasterizer::set_options(RenderOptions &options) noexcept {
  */
 void Rasterizer::render_wireframe() noexcept {
   Line cached_line(white);
-  for (int i = 0; i < model_->v_ind_num(); i++) {
-    std::vector<int> face = model_->getv_ind(i);
+  for (int i = 0; i < model_->f_vi_num(); i++) {
+    std::vector<int> face = model_->getf_vi(i);
     for (int j = 0; j < 3; j++) {
       Vec3f v0 = model_->getv(face[j]);
       Vec3f v1 = model_->getv(face[(j + 1) % 3]);
@@ -119,9 +119,9 @@ void Rasterizer::render_zbufgray() noexcept {
       options_.height * 3 / 4, options_.depth);
 
   // render each piece/triangles
-  for (int i = 0; i < model_->v_ind_num(); i++) {
+  for (int i = 0; i < model_->f_vi_num(); i++) {
     // load data from model_
-    std::vector<int> face = model_->getv_ind(i);
+    std::vector<int> face = model_->getf_vi(i);
     Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
     for (int j = 0; j < 3; j++) {
       Vec3f v = model_->getv(face[j]);
@@ -168,11 +168,11 @@ void Rasterizer::render_triangle() noexcept {
       options_.height * 3 / 4, options_.depth);
 
   // render each face/piece
-  for (int i = 0; i < model_->face_num(); i++) {
+  for (int i = 0; i < model_->f_num(); i++) {
     // load data from model_
-    std::vector<int> v_ind_tuple = model_->getv_ind(i);
-    std::vector<int> vt_ind_tuple = model_->getvt_ind(i);
-    std::vector<int> vn_ind_tuple = model_->getvn_ind(i);
+    std::vector<int> v_ind_tuple = model_->getf_vi(i);
+    std::vector<int> vt_ind_tuple = model_->getf_vti(i);
+    std::vector<int> vn_ind_tuple = model_->getf_vni(i);
 
     Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
     Vec3f world_coords[3];  // coord of 3 verts without any transform

@@ -133,8 +133,8 @@ int main(int argc, char **argv) {
   line(Vec3i(o), Vec3i(x), image, red);
   line(Vec3i(o), Vec3i(y), image, green);
 
-  for (int i = 0; i < model->face_num(); i++) {
-    std::vector<int> face = model->getv_ind(i);
+  for (int i = 0; i < model->f_num(); i++) {
+    std::vector<int> face = model->getf_vi(i);
     for (int j = 0; j < (int)face.size(); j++) {
       Vec3f wp0 = model->getv(face[j]);
       Vec3f wp1 = model->getv(face[(j + 1) % face.size()]);

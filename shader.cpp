@@ -1,7 +1,7 @@
 #include "shader.h"
 
-IShader::~IShader() {}
+IHardShader::~IHardShader() {}
 
-Vec3i GouraudShader::vertex(int iface, int nth_vert) {}
+Vec4f GouraudShader::vertex_exec(int iface, int nth_vert) {}
 
-bool GouraudShader::fragment(Vec3f bar, TGAColor &color) {}
+bool GouraudShader::fragment_exec(Vec3f bar, TGAColor &color) {}

@@ -1,4 +1,4 @@
-#include "gmath.h"
+#include "gmath.hpp"
 #include "tgaimage.h"
 #include <algorithm>
 #include <cstdio>

@@ -1,4 +1,4 @@
-#include "gmath.h"
+#include "gmath.hpp"
 #include "model.h"
 #include "tgaimage.h"
 #include <cmath>

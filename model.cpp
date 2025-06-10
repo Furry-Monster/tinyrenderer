@@ -1,5 +1,5 @@
 #include "model.h"
-#include "gmath.h"
+#include "gmath.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>

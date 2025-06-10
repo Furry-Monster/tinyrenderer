@@ -1,7 +1,7 @@
 #ifndef __PRIMITIVE_H__
 #define __PRIMITIVE_H__
 
-#include "gmath.h"
+#include "gmath.hpp"
 #include "renderer.h"
 #include "tgaimage.h"
 #include <vector>

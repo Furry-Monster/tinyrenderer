@@ -3,7 +3,7 @@
 
 #define MY_PI 3.14159f
 
-#include "gmath.h"
+#include "gmath.hpp"
 #include <cmath>
 
 /**

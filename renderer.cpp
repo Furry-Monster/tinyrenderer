@@ -1,7 +1,7 @@
 #include "renderer.h"
-#include "gmath.h"
-#include "gutils.h"
-#include "primitive.h"
+#include "gmath.hpp"
+#include "gutils.hpp"
+#include "primitive.hpp"
 #include "tgaimage.h"
 #include <algorithm>
 #include <limits>

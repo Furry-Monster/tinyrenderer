@@ -15,6 +15,7 @@
 
 template <typename T> struct Vec2;
 template <typename T> struct Vec3;
+template <typename T> struct Vec4;
 
 /**
  * @brief 2D Vector struct template
@@ -47,6 +48,9 @@ template <typename T> struct Vec2 {
       : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)) {}
 
   // operator overrides.
+  constexpr T operator^(const Vec2<T> &rhs) const noexcept {
+    return x * rhs.y - y * rhs.x;
+  }
   constexpr Vec2<T> operator+(const Vec2<T> &rhs) const noexcept {
     return Vec2<T>(u + rhs.u, v + rhs.v);
   }
@@ -55,6 +59,9 @@ template <typename T> struct Vec2 {
   }
   constexpr Vec2<T> operator*(T scalar) const noexcept {
     return Vec2<T>(u * scalar, v * scalar);
+  }
+  constexpr T operator*(const Vec2<T> &rhs) const noexcept {
+    return x * rhs.x + y * rhs.y;
   }
   constexpr T operator[](int idx) const { return raw[idx]; }
 
@@ -71,7 +78,10 @@ template <typename T> struct Vec2 {
   }
 
   // other ops.
-  constexpr Vec3<T> toVec3() const noexcept { return Vec3<T>(x, y, 1); };
+  constexpr Vec3<T> toVec3() const noexcept { return Vec3<T>(x, y, T(1.0f)); };
+  constexpr Vec4<T> toVec4() const noexcept {
+    return Vec4<T>(x, y, T(1.0f), T(1.0f));
+  }
 
   template <typename U>
   friend std::ostream &operator<<(std::ostream &s, const Vec2<T> &v);
@@ -89,9 +99,6 @@ template <typename T> struct Vec3 {
   union {
     struct {
       T x, y, z;
-    };
-    struct {
-      T ivert, iuv, inorm;
     };
     T raw[3];
   };
@@ -143,15 +150,90 @@ template <typename T> struct Vec3 {
 
   // other ops
   constexpr Vec2<T> toVec2() const noexcept { return Vec2<T>(x, y); }
+  constexpr Vec4<T> toVec4() const noexcept {
+    return Vec4<T>(x, y, z, T(1.0f));
+  }
 
   template <typename U>
   friend std::ostream &operator<<(std::ostream &s, const Vec3<T> &v);
+};
+
+template <typename T> struct Vec4 {
+  static_assert(std::is_arithmetic<T>::value,
+                "Vector type must be arithmetic!");
+
+  union {
+    struct {
+      T x, y, z, w;
+    };
+    T raw[4];
+  };
+
+  // constructors
+  constexpr Vec4() noexcept : x(0), y(0), z(0), w(0) {}
+  constexpr Vec4(T _x, T _y, T _z, T _w) noexcept
+      : x(_x), y(_y), z(_z), w(_w) {}
+
+  template <typename U>
+  constexpr explicit Vec4(const Vec2<U> &other)
+      : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)),
+        z(static_cast<T>(1.0f)), w(static_cast<T>(1.0f)) {}
+  template <typename U>
+  constexpr explicit Vec4(const Vec3<U> &other)
+      : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)),
+        z(static_cast<T>(other.z)), w(static_cast<T>(1.0f)) {}
+  template <typename U>
+  constexpr explicit Vec4(const Vec4<U> &other)
+      : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)),
+        z(static_cast<T>(other.z)), w(static_cast<T>(other.w)) {}
+
+  // operator overrides
+  constexpr Vec4<T> operator^(const Vec4<T> &rhs) const noexcept {
+    return Vec4<T>(y * rhs.z - z * rhs.y, z * rhs.x - x * rhs.z,
+                   x * rhs.y - y * rhs.x, w);
+  }
+  constexpr Vec4<T> operator+(const Vec4<T> &rhs) const noexcept {
+    return Vec4<T>(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+  }
+  constexpr Vec4<T> operator-(const Vec4<T> &rhs) const noexcept {
+    return Vec4<T>(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+  }
+  constexpr Vec4<T> operator*(T scalar) const noexcept {
+    return Vec4<T>(x * scalar, y * scalar, z * scalar, w * scalar);
+  }
+  constexpr T operator*(const Vec4<T> &rhs) const noexcept {
+    return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w;
+  }
+  constexpr T operator[](size_t idx) const { return raw[idx]; }
+
+  // vector ops.
+  T norm() const { return std::sqrt(x * x + y * y + z * z + w * w); }
+  Vec4<T> &normalize(T l = 1) {
+    T n = norm();
+    if (n > 0) {
+      T scale = l / n;
+      x *= scale;
+      y *= scale;
+      z *= scale;
+      w *= scale;
+    }
+    return *this;
+  }
+
+  // other ops
+  constexpr Vec2<T> toVec2() const noexcept { return Vec2<T>(x, y); }
+  constexpr Vec3<T> toVec3() const noexcept { return Vec3<T>(x, y, z); }
+
+  template <typename U>
+  friend std::ostream &operator<<(std::ostream &s, const Vec4<T> &v);
 };
 
 typedef Vec2<float> Vec2f;
 typedef Vec2<int> Vec2i;
 typedef Vec3<float> Vec3f;
 typedef Vec3<int> Vec3i;
+typedef Vec4<float> Vec4f;
+typedef Vec4<int> Vec4i;
 
 template <typename T>
 std::ostream &operator<<(std::ostream &s, const Vec2<T> &v) {
@@ -162,6 +244,12 @@ std::ostream &operator<<(std::ostream &s, const Vec2<T> &v) {
 template <typename T>
 std::ostream &operator<<(std::ostream &s, const Vec3<T> &v) {
   s << "(" << v.x << ", " << v.y << ", " << v.z << ")\n";
+  return s;
+}
+
+template <typename T>
+std::ostream &operator<<(std::ostream &s, const Vec4<T> &v) {
+  s << "(" << v.x << ", " << v.y << ", " << v.z << "," << v.w << ")\n";
   return s;
 }
 

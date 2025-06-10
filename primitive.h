@@ -75,7 +75,7 @@ private:
   unsigned int shading_mode_;
 
 public:
-  Triangle(unsigned int mode) : shading_mode_(mode) {}
+  explicit Triangle(unsigned int mode) noexcept : shading_mode_(mode) {}
 
   void set_verts(Vec3f *verts) {
     for (int i = 0; i < 3; i++)

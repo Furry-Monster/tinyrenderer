@@ -21,8 +21,8 @@ struct RenderOptions {
   RenderingMode mode = RenderingMode::TRIANGLE;
   unsigned int shadingmode = 0;
 
-  int width = 800;
-  int height = 800;
+  int width = 1080;
+  int height = 1080;
   int depth = 255;
 };
 

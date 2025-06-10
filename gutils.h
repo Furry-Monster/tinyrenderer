@@ -69,7 +69,7 @@ static Mat4f view_trans(Vec3f camera_pos, Vec3f lookat, Vec3f up) noexcept {
   // accrooding to right-hand rule
   Vec3f l = lookat.normalize();
   Vec3f u = up.normalize();
-  Vec3f r = l ^ u;
+  Vec3f r = (l ^ u).normalize();
 
   // firstly,simply move the model to set camera to origin
   Mat4f tr_t = {

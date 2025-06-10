@@ -159,14 +159,16 @@ void Renderer::render_zbufgray() noexcept {
  */
 void Renderer::render_triangle() noexcept {
   Vec3f light_dir(0, 0, -1); // define light_dir
-  Vec3f camera(1, 1, 3);     // define camera position
+  Vec3f camera(1, 0, 3);     // define camera position
   Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
 
   Mat4f m_trans = model_trans();
   Mat4f v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
+  // Mat4f p_trans = projection_trans(60, 16.0f / 9.0f, 1, 255);
+  // Below is the simple projection matrix used before...
   Mat4f p_trans = Mat4f::identity();
-  p_trans[3][2] = -1.0f / camera.z;
+  p_trans[3][2] = -1.0f / (camera - obj_center).norm();
   Mat4f viewport = viewport_trans(
       options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
       options_.height * 3 / 4, options_.depth);

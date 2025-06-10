@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "gmath.h"
 #include "gutils.h"
 #include "primitive.h"
 #include "tgaimage.h"
@@ -86,26 +87,6 @@ void Renderer::set_options(RenderOptions &options) noexcept {
 }
 
 /**
- * @brief Get a matrix for transformation from NDC to Screen/Viewport
- *
- * @param x Viewport origin x value
- * @param y Viewport origin y value
- * @param w Viewport width
- * @param h Viewport height
- * @param depth Depth for Culling and Depth-Testing
- * @return Mat4f Viewport Transformation Matrix
- */
-Mat4f viewport_trans(int x, int y, int w, int h, int depth) noexcept {
-  Mat4f m = {
-      {w / 2.0f, 0, 0, x + w / 2.0f},
-      {0, h / 2.0f, 0, y + h / 2.0f},
-      {0, 0, depth / 2.0f, depth / 2.0f},
-      {0, 0, 0, 1},
-  };
-  return m;
-}
-
-/**
  * @brief Render in wireframe mode with cached line
  *
  */
@@ -131,13 +112,16 @@ void Renderer::render_wireframe() noexcept {
  *
  */
 void Renderer::render_zbufgray() noexcept {
-  Vec3f camera(0, 0, 3); // define camera position;
+  Vec3f camera(1, 1, 3);     // define camera position;
+  Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
 
   TGAImage zbufimage(options_.width, options_.height, TGAImage::GRAYSCALE);
 
-  Mat4f projection = Mat4f::identity();
-  projection[3][2] = -1.0f / camera.z;
+  Mat4f m_trans = model_trans();
+  Mat4f v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
+  Mat4f p_trans = Mat4f::identity();
+  p_trans[3][2] = -1.0f / camera.z;
   Mat4f viewport = viewport_trans(
       options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
       options_.height * 3 / 4, options_.depth);
@@ -149,7 +133,7 @@ void Renderer::render_zbufgray() noexcept {
     Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
     for (int j = 0; j < 3; j++) {
       Vec3f v = model_->getv(face[j]);
-      screen_coords[j] = m2v(viewport * projection * v2m(v));
+      screen_coords[j] = m2v(viewport * p_trans * v_trans * m_trans * v2m(v));
     }
     cached_triangle.set_rverts(screen_coords);
 
@@ -175,11 +159,14 @@ void Renderer::render_zbufgray() noexcept {
  */
 void Renderer::render_triangle() noexcept {
   Vec3f light_dir(0, 0, -1); // define light_dir
-  Vec3f camera(0, 0, 3);     // define camera position;
+  Vec3f camera(1, 1, 3);     // define camera position
+  Vec3f obj_center(0, 0, 0); // define object center position
   Triangle cached_triangle(options_.shadingmode);
 
-  Mat4f projection = Mat4f::identity();
-  projection[3][2] = -1.0f / camera.z;
+  Mat4f m_trans = model_trans();
+  Mat4f v_trans = view_trans(camera, obj_center - camera, Vec3f(0, 1, 0));
+  Mat4f p_trans = Mat4f::identity();
+  p_trans[3][2] = -1.0f / camera.z;
   Mat4f viewport = viewport_trans(
       options_.width * 1 / 8, options_.height * 1 / 8, options_.width * 3 / 4,
       options_.height * 3 / 4, options_.depth);
@@ -202,7 +189,7 @@ void Renderer::render_triangle() noexcept {
       Vec3f vn = model_->getvn(vn_ind_tuple[j]);
 
       world_coords[j] = v;
-      screen_coords[j] = m2v(viewport * projection * v2m(v));
+      screen_coords[j] = m2v(viewport * p_trans * v_trans * m_trans * v2m(v));
       tex_coords[j] = vt;
       norm_coords[j] = vn;
     }

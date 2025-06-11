@@ -344,6 +344,12 @@ public:
     }
     return result;
   }
+  constexpr Matrix<T, R, C> &operator=(const Matrix<T, R, C> &rhs) noexcept {
+    if (this != &rhs) {
+      data = rhs.data;
+    }
+    return *this;
+  }
   constexpr Matrix<T, C, R> transpose() const noexcept {
     Matrix<T, C, R> result;
     for (int i = 0; i < R; i++) {

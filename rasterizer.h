@@ -5,6 +5,7 @@
 #include "model.h"
 #include "tgaimage.h"
 #include <memory>
+#include <string_view>
 
 enum ShadingType {
   DIFFUSE = 0x1,
@@ -35,14 +36,17 @@ private:
   std::unique_ptr<TGAImage> frame_;
   Model *model_;
 
+  // texture maps
   TGAImage diffusemap_;
   TGAImage normalmap_;
   TGAImage specularmap_;
 
+  // some hard code but important position
   Vec3f light_dir = Vec3f(0, 0, -1);
   Vec3f camera = Vec3f(1, 0, 3);
   Vec3f obj_center = Vec3f(0, 0, 0);
 
+  // mvp cache
   Mat4f m_trans;
   Mat4f v_trans;
   Mat4f p_trans;
@@ -57,13 +61,13 @@ public:
 
   // getter/setter
   Mat4f get_mvp() const noexcept;
-  void set_model(Model *model) noexcept;
-  void set_texture(TGAImage &texture, ShadingType type) noexcept;
-  void set_options(RenderOptions &options) noexcept;
+  void bind_model(Model *model) noexcept;
+  void bind_texture(TGAImage &texture, ShadingType type) noexcept;
+  void bind_options(RenderOptions &options) noexcept;
 
   // functions
   void render() noexcept;
-  void save_image(std::string filename) noexcept;
+  void save_frame(std::string filename) noexcept;
 
 private:
   void calc_mvp() noexcept;

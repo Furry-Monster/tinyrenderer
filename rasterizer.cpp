@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <string_view>
 
 /**
  * @brief Construct a new Renderer:: Renderer object,zbuffer will be
@@ -60,7 +61,7 @@ Mat4f Rasterizer::get_mvp() const noexcept {
  *
  * @param model new model to be set
  */
-void Rasterizer::set_model(Model *model) noexcept {
+void Rasterizer::bind_model(Model *model) noexcept {
   // here clear model_ ptr
   delete model_;
   model_ = model;
@@ -71,7 +72,7 @@ void Rasterizer::set_model(Model *model) noexcept {
  * @param texture TGAImage type image for texture
  * @param type shading type the texture will be used for
  */
-void Rasterizer::set_texture(TGAImage &texture, ShadingType type) noexcept {
+void Rasterizer::bind_texture(TGAImage &texture, ShadingType type) noexcept {
   texture.flip_vertically();
 
   if (type == ShadingType::DIFFUSE) {
@@ -85,7 +86,7 @@ void Rasterizer::set_texture(TGAImage &texture, ShadingType type) noexcept {
     specularmap_ = texture;
   }
 }
-void Rasterizer::set_options(RenderOptions &options) noexcept {
+void Rasterizer::bind_options(RenderOptions &options) noexcept {
   options_ = options;
 }
 
@@ -239,6 +240,6 @@ void Rasterizer::render() noexcept {
  *
  * @param filename image to store the output, suffix should be .tga
  */
-void Rasterizer::save_image(std::string filename) noexcept {
-  frame_.get()->write_tga_file(filename.c_str());
+void Rasterizer::save_frame(std::string filename) noexcept {
+  frame_.get()->write_tga_file(filename.data());
 }

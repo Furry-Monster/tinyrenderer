@@ -107,23 +107,25 @@ int main(int argc, char **argv) {
     std::cerr << "Error: Can't load model from " << path.obj << std::endl;
     return 1;
   }
-  rst.set_model(model);
+  rst.bind_model(model);
 
   // load texture maps from files
   TGAImage diffusemap, normalmap, specularmap;
   if (diffusemap.read_tga_file(path.diffuse.c_str()))
-    rst.set_texture(diffusemap, DIFFUSE);
+    rst.bind_texture(diffusemap, DIFFUSE);
   if (normalmap.read_tga_file(path.normal.c_str()))
-    rst.set_texture(normalmap, NORMAL);
+    rst.bind_texture(normalmap, NORMAL);
   if (specularmap.read_tga_file(path.specular.c_str()))
-    rst.set_texture(specularmap, SPECULAR);
+    rst.bind_texture(specularmap, SPECULAR);
+
+  // create and load shaders(here we just use "hard shader")
 
   // now we really need to start rendering
   rst.render();
 
   // save image and release model, it won't be used anymore
-  rst.save_image(path.output);
-  rst.set_model(nullptr);
+  rst.save_frame(path.output);
+  rst.bind_model(nullptr);
 
   return 0;
 }

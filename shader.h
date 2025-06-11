@@ -12,6 +12,7 @@
 struct IHardShader {
   // i'd like to call it hard shader actually,
   // cuz i think it's similar to the concept of hardcode values
+  // well we might use glsl or hsls or sth like that...
   // :-)
   virtual ~IHardShader();
   virtual Vec4f vertex_exec(int iface, int nth_vert) = 0;
@@ -19,7 +20,6 @@ struct IHardShader {
 };
 
 struct GouraudShader : public IHardShader {
-
   Model &model;     // Get model ref , ummm... that's not a good idea...
   Vec3f &light_dir; // I hate ref everywhere but...
   Rasterizer &rst;

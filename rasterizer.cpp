@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
-#include <string_view>
 
 /**
  * @brief Construct a new Renderer:: Renderer object,zbuffer will be
@@ -130,14 +129,12 @@ void Rasterizer::render_zbufgray() noexcept {
   Triangle cached_triangle(options_.shadingmode);
   TGAImage zbufimage(options_.width, options_.height, TGAImage::GRAYSCALE);
 
+  Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
+
   // render each piece/triangles
   for (int i = 0; i < model_->f_vi_num(); i++) {
-    // load data from model_
-    std::vector<int> face = model_->getf_vi(i);
-    Vec3f screen_coords[3]; // coord of 3 verts trace on screen plate
     for (int j = 0; j < 3; j++) {
-      Vec3f v = model_->getv(face[j]);
-      screen_coords[j] = m2v3(viewport * p_trans * v_trans * m_trans * v2m(v));
+      screen_coords[j] = m2v3(get_mvp() * v2m(model_->getv(i, j)));
     }
     cached_triangle.set_rverts(screen_coords);
 
@@ -166,27 +163,18 @@ void Rasterizer::render_zbufgray() noexcept {
 void Rasterizer::render_triangle() noexcept {
   Triangle cached_triangle(options_.shadingmode);
 
+  Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
+  Vec3f world_coords[3];  // coord of 3 verts without any transform
+  Vec2f tex_coords[3];    // coord of 3 verts for texturing
+  Vec3f norm_coords[3];   // coord of 3 vertex for lighting
+
   // render each face/piece
   for (int i = 0; i < model_->f_num(); i++) {
-    // load data from model_
-    std::vector<int> v_ind_tuple = model_->getf_vi(i);
-    std::vector<int> vt_ind_tuple = model_->getf_vti(i);
-    std::vector<int> vn_ind_tuple = model_->getf_vni(i);
-
-    Vec3f screen_coords[3]; // coord of 3 verts trace on viewport plateform
-    Vec3f world_coords[3];  // coord of 3 verts without any transform
-    Vec2f tex_coords[3];    // coord of 3 verts for texturing
-    Vec3f norm_coords[3];   // coord of 3 vertex for lighting
-
     for (int j = 0; j < 3; j++) {
-      Vec3f v = model_->getv(v_ind_tuple[j]);
-      Vec2f vt = model_->getvt(vt_ind_tuple[j]);
-      Vec3f vn = model_->getvn(vn_ind_tuple[j]);
-
-      world_coords[j] = v;
-      screen_coords[j] = m2v3(viewport * p_trans * v_trans * m_trans * v2m(v));
-      tex_coords[j] = vt;
-      norm_coords[j] = vn;
+      world_coords[j] = model_->getv(i, j);
+      screen_coords[j] = m2v3(get_mvp() * v2m(world_coords[j]));
+      tex_coords[j] = model_->getvt(i, j);
+      norm_coords[j] = model_->getvn(i, j);
     }
 
     cached_triangle.set_verts(world_coords);

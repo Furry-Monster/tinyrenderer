@@ -183,12 +183,12 @@ public:
    * @param intensity light intensity, so simple :-(
    */
   void draw(TGAImage &image, float *zbuf, TGAImage &diffuse,
-            float intensity) noexcept {
+            TGAImage &normal) noexcept {
     int xmax = -1, ymax = -1;
     int xmin = 8000,
         ymin = 8000; // i dont think somebody would use 8k screen...
     Vec2i vertices_2i[3];
-    TGAColor color;
+    TGAColor color = white;
 
     for (int i = 0; i < 3; i++) {
       Vec2i cur_vertex = Vec2i(rverts_[i]);
@@ -219,7 +219,7 @@ public:
         if (bc.x < 0 || bc.y < 0 || bc.z < 0)
           continue;
 
-        // barycentric interpolate texturing
+        // barycentric interpolate texturing and lighting
         if ((shading_mode_ & 0x1) != 0) {
           // &0x1 for diffuse bit
           Vec2f tex_pos(0, 0);
@@ -230,16 +230,26 @@ public:
           int sample_x = tex_pos.u * diffuse.get_width();
           int sample_y = tex_pos.v * diffuse.get_height();
 
+          // overwrite the color
           color = diffuse.get_pixel(sample_x, sample_y);
-        } else {
-          // use no texture maps...
-          // we just use white/gray to render it.
-          color = white;
         }
+        if ((shading_mode_ & 0x10) != 0) {
+          // &0x10 for normal bit
+          Vec3f light_dir = Vec3f(0, 0, 1);
 
-        // an easy lighting,well, it's not enough for me...
-        color = TGAColor(color.r * intensity, color.g * intensity,
-                         color.b * intensity, color.a);
+          Vec2f tex_pos(0, 0);
+          for (int k = 0; k < 3; k++) {
+            tex_pos.x += uvs_[k].u * bc[k];
+            tex_pos.y += uvs_[k].v * bc[k];
+          }
+          int sample_x = tex_pos.u * normal.get_width();
+          int sample_y = tex_pos.v * normal.get_height();
+          TGAColor sample = normal.get_pixel(sample_x, sample_y);
+          Vec3f sample_val(sample.r, sample.g, sample.b);
+          float intensity = sample_val.normalize() * light_dir;
+          if (intensity > 0)
+            color = color * intensity;
+        }
 
         // depth buffer testing here.
         for (int k = 0; k < 3; k++)

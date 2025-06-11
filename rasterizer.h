@@ -42,7 +42,6 @@ private:
   TGAImage specularmap_;
 
   // some hard code but important position
-  Vec3f light_dir = Vec3f(0, 0, -1);
   Vec3f camera = Vec3f(1, 0, 3);
   Vec3f obj_center = Vec3f(0, 0, 0);
 

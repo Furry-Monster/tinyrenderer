@@ -182,17 +182,9 @@ void Rasterizer::render_triangle() noexcept {
     cached_triangle.set_uvs(tex_coords);
     cached_triangle.set_normals(norm_coords);
 
-    // calculate light intensity...
-    Vec3f n = (world_coords[2] - world_coords[0]) ^
-              (world_coords[1] - world_coords[0]);
-    n.normalize();
-    float intensity = n * light_dir;
-
     // render on image, texturing will be done in draw_triangle()
-    if (intensity > 0) {
-      cached_triangle.draw(*(frame_.get()), zbuffer_.get(), diffusemap_,
-                           intensity);
-    }
+    cached_triangle.draw(*(frame_.get()), zbuffer_.get(), diffusemap_,
+                         normalmap_);
   }
 }
 

@@ -184,7 +184,7 @@ void Rasterizer::render_triangle() noexcept {
 
     // render on image, texturing will be done in draw_triangle()
     cached_triangle.draw(*(frame_.get()), zbuffer_.get(), diffusemap_,
-                         normalmap_);
+                         normalmap_, specularmap_);
   }
 }
 

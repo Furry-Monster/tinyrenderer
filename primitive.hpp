@@ -4,6 +4,7 @@
 #include "gmath.hpp"
 #include "tgaimage.h"
 #include <algorithm>
+#include <cmath>
 
 class Primitive {
 public:
@@ -73,6 +74,7 @@ private:
   Vec3f normals_[3];
 
   // shader props
+  Vec3f light_dir = Vec3f(0, 0, 1);
   unsigned int shading_mode_;
 
 public:
@@ -186,7 +188,7 @@ public:
    * @param intensity light intensity, so simple :-(
    */
   void draw(TGAImage &image, float *zbuf, TGAImage &diffusemap,
-            TGAImage &normalmap) noexcept {
+            TGAImage &normalmap, TGAImage &specmap) noexcept {
     int xmax = -1, ymax = -1;
     int xmin = 8000,
         ymin = 8000; // i dont think somebody would use 8k screen...
@@ -239,8 +241,6 @@ public:
         }
         if ((shading_mode_ & 0x10) != 0) {
           // &0x10 for normal bit
-          Vec3f light_dir = Vec3f(0, 0, 1);
-
           int sample_x = tex_pos.u * normalmap.get_width();
           int sample_y = tex_pos.v * normalmap.get_height();
 
@@ -253,8 +253,30 @@ public:
               std::max(0.0f, sample_val.normalize() * light_dir.normalize());
           color = color * intensity;
         }
-        if((shading_mode_ & 0x100)!=0){
+        if (0 && (shading_mode_ & 0x100) != 0) {
+          int sample1_x = tex_pos.u * normalmap.get_width();
+          int sample1_y = tex_pos.v * normalmap.get_height();
 
+          TGAColor sample1 = normalmap.get_pixel(sample1_x, sample1_y);
+          Vec3f sample_val;
+          for (int i = 0; i < 3; i++)
+            sample_val.raw[2 - i] = (float)sample1[i] / 255.0f * 2.0f - 1.0f;
+
+          int sample2_x = tex_pos.u * specmap.get_width();
+          int sample2_y = tex_pos.v * specmap.get_height();
+
+          TGAColor sample2 = specmap.get_pixel(sample2_x, sample2_y);
+          Vec3f sample2_val(sample2.r, sample2.g, sample2.b);
+
+          Vec3f n = sample2_val.normalize();
+          Vec3f l = light_dir.normalize();
+          Vec3f rfl = (n * (n * l * 2.0f) - l).normalize(); // reflected light
+          float spec = pow(std::max(0.0f, rfl.z), sample2_val.z / 1.0f);
+          float diff = std::max(0.0f, n * l);
+
+          for (int i = 0; i < 3; i++)
+            color[i] =
+                std::min<float>(5 + color[i] * (diff + 0.6f * spec), 255);
         }
 
         // depth buffer testing here.

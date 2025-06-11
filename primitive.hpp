@@ -3,6 +3,7 @@
 
 #include "gmath.hpp"
 #include "tgaimage.h"
+#include <algorithm>
 
 class Primitive {
 public:
@@ -65,11 +66,13 @@ public:
 
 struct Triangle : public Primitive {
 private:
+  // info
   Vec3f verts[3];
   Vec3f rverts_[3];
   Vec2f uvs_[3];
   Vec3f normals_[3];
 
+  // shader props
   unsigned int shading_mode_;
 
 public:
@@ -182,8 +185,8 @@ public:
    * @param zbuf zbuffer reference for depth testing
    * @param intensity light intensity, so simple :-(
    */
-  void draw(TGAImage &image, float *zbuf, TGAImage &diffuse,
-            TGAImage &normal) noexcept {
+  void draw(TGAImage &image, float *zbuf, TGAImage &diffusemap,
+            TGAImage &normalmap) noexcept {
     int xmax = -1, ymax = -1;
     int xmin = 8000,
         ymin = 8000; // i dont think somebody would use 8k screen...
@@ -219,36 +222,39 @@ public:
         if (bc.x < 0 || bc.y < 0 || bc.z < 0)
           continue;
 
-        // barycentric interpolate texturing and lighting
+        // barycentric interpolate texturing and lighting sampler
+        Vec2f tex_pos(0, 0);
+        for (int k = 0; k < 3; k++) {
+          tex_pos.x += uvs_[k].u * bc[k];
+          tex_pos.y += uvs_[k].v * bc[k];
+        }
+
         if ((shading_mode_ & 0x1) != 0) {
           // &0x1 for diffuse bit
-          Vec2f tex_pos(0, 0);
-          for (int k = 0; k < 3; k++) {
-            tex_pos.x += uvs_[k].u * bc[k];
-            tex_pos.y += uvs_[k].v * bc[k];
-          }
-          int sample_x = tex_pos.u * diffuse.get_width();
-          int sample_y = tex_pos.v * diffuse.get_height();
+          int sample_x = tex_pos.u * diffusemap.get_width();
+          int sample_y = tex_pos.v * diffusemap.get_height();
 
           // overwrite the color
-          color = diffuse.get_pixel(sample_x, sample_y);
+          color = diffusemap.get_pixel(sample_x, sample_y);
         }
         if ((shading_mode_ & 0x10) != 0) {
           // &0x10 for normal bit
           Vec3f light_dir = Vec3f(0, 0, 1);
 
-          Vec2f tex_pos(0, 0);
-          for (int k = 0; k < 3; k++) {
-            tex_pos.x += uvs_[k].u * bc[k];
-            tex_pos.y += uvs_[k].v * bc[k];
-          }
-          int sample_x = tex_pos.u * normal.get_width();
-          int sample_y = tex_pos.v * normal.get_height();
-          TGAColor sample = normal.get_pixel(sample_x, sample_y);
-          Vec3f sample_val(sample.r, sample.g, sample.b);
-          float intensity = sample_val.normalize() * light_dir;
-          if (intensity > 0)
-            color = color * intensity;
+          int sample_x = tex_pos.u * normalmap.get_width();
+          int sample_y = tex_pos.v * normalmap.get_height();
+
+          TGAColor sample = normalmap.get_pixel(sample_x, sample_y);
+          Vec3f sample_val;
+          for (int i = 0; i < 3; i++)
+            sample_val.raw[2 - i] = (float)sample[i] / 255.0f * 2.0f - 1.0f;
+
+          float intensity =
+              std::max(0.0f, sample_val.normalize() * light_dir.normalize());
+          color = color * intensity;
+        }
+        if((shading_mode_ & 0x100)!=0){
+
         }
 
         // depth buffer testing here.

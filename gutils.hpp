@@ -107,7 +107,13 @@ static Mat4f view_trans(Vec3f camera_pos, Vec3f lookat, Vec3f up) noexcept {
  * @return Mat4f Model Matrix of MVP
  */
 static Mat4f model_trans() noexcept {
-  Mat4f m = Mat4f::identity();
+  // here we just sacle it to double size
+  Mat4f m = {
+      {2, 0, 0, 0},
+      {0, 2, 0, 0},
+      {0, 0, 2, 0},
+      {0, 0, 0, 1},
+  };
   return m;
 }
 
